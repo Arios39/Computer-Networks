@@ -17,9 +17,9 @@ implementation {
     components MainC;
     components Node;
     components new AMReceiverC(AM_PACK) as GeneralReceive;
-
+	components new TimerMilliC() as neighbortimer;
     Node -> MainC.Boot;
-
+	Node.neighbortimer -> neighbortimer;
     Node.Receive -> GeneralReceive;
 
     components ActiveMessageC;

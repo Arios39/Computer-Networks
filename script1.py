@@ -23,10 +23,6 @@ s.addChannel(s.GENERAL_CHANNEL);
 
     # After sending a ping, simulate a little to prevent collision.
 s.runTime(1);
-s.ping(1, 2, "Fuck");
+s.ping(1, 7, "Fuck");
 s.runTime(1);
-
-s.ping(2, 3, "Hi!");
-s.runTime(60);
-
 

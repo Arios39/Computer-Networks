@@ -18,13 +18,14 @@ module Node{
 
    uses interface SplitControl as AMControl;
    uses interface Receive;
-
+	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
 
    uses interface CommandHandler;
 }
 
 implementation{
+
    pack sendPackage;
 
    // Prototypes
@@ -32,10 +33,20 @@ implementation{
 
    event void Boot.booted(){
       call AMControl.start();
-
+call neighbortimer.startPeriodic(250);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
+   
+   
+   event void neighbortimer.fired(){
 
+   dbg(GENERAL_CHANNEL, "Testing\n");
+
+   
+   }
+   
+   
+   
    event void AMControl.startDone(error_t err){
       if(err == SUCCESS){
          dbg(GENERAL_CHANNEL, "Radio On\n");
@@ -44,6 +55,7 @@ implementation{
          call AMControl.start();
       }
    }
+
 
    event void AMControl.stopDone(error_t err){}
 
@@ -54,6 +66,7 @@ implementation{
          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
          return msg;
       }
+
       dbg(GENERAL_CHANNEL, "Unknown Packet Type %d\n", len);
       return msg;
    }
