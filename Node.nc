@@ -14,8 +14,7 @@
 #include "includes/channels.h"
 
 module Node{
-   uses interface Boot;
-
+   uses interface Boot;  
    uses interface SplitControl as AMControl;
    uses interface Receive;
 	uses interface Timer<TMilli> as neighbortimer;
@@ -29,19 +28,20 @@ implementation{
    pack sendPackage;
 
    // Prototypes
+   void findneighbor();
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
 
    event void Boot.booted(){
+   
       call AMControl.start();
-call neighbortimer.startPeriodic(250);
+call neighbortimer.startPeriodic(10000);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
    
    event void neighbortimer.fired(){
 
-   dbg(GENERAL_CHANNEL, "Testing\n");
-
+findneighbor();
    
    }
    
@@ -57,7 +57,7 @@ call neighbortimer.startPeriodic(250);
    }
 
 
-   event void AMControl.stopDone(error_t err){}
+  event void AMControl.stopDone(error_t err){}
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
       dbg(GENERAL_CHANNEL, "Packet Received\n");
@@ -77,6 +77,16 @@ call neighbortimer.startPeriodic(250);
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Sender.send(sendPackage, destination);
    }
+   
+   void findneighbor(){
+   
+   
+   makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR,50,0,0, 0, 0);
+   dbg( GENERAL_CHANNEL, "Hello \n");
+   call Sender.send(sendPackage,AM_BROADCAST_ADDR);
+   
+   }
+
 
    event void CommandHandler.printNeighbors(){}
 
