@@ -28,6 +28,7 @@ implementation {
 
   components new ListC(Neighbor, 20) as NeighborHoodC;
    Node.NeighborHood -> NeighborHoodC;
+
    
     components new SimpleSendC(AM_PACK);
     Node.Sender -> SimpleSendC;

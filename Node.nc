@@ -13,18 +13,17 @@
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
 
+
+
+
+ 
+
+
 typedef struct{
 
-uint16_t daddy_node;
+uint16_t node;
 
 } Neighbor;
-
-
-typedef struct{
-
-Neighbor list[4];
-
-} Body;
 
 
 
@@ -37,8 +36,10 @@ module Node{
 	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
 	uses interface List<Neighbor> as NeighborHood;
+
    uses interface CommandHandler;
 }
+
 
 
 
@@ -98,8 +99,13 @@ findneighbor();
    }
    
    void findneighbor(){
+   if( TOS_NODE_ID==2){
+            dbg(GENERAL_CHANNEL, "-----IM NODE: %d\n", TOS_NODE_ID);
    
-         dbg(GENERAL_CHANNEL, "-----IM NODE: %d\n", TOS_NODE_ID);
+   
+   }
+   
+       //  dbg(GENERAL_CHANNEL, "-----IM NODE: %d\n", TOS_NODE_ID);
    
    call Sender.send(sendPackage,AM_BROADCAST_ADDR);
    
