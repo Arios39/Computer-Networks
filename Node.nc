@@ -80,6 +80,7 @@ findneighbor();
   event void AMControl.stopDone(error_t err){}
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
+   
       dbg(GENERAL_CHANNEL, "Packet Received\n");
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
@@ -92,28 +93,44 @@ findneighbor();
    }
 
 
+
+
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n");
+         
+
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Sender.send(sendPackage, destination);
    }
+
+
+
+
+
    
-   void findneighbor(){
-   if( TOS_NODE_ID==2){
-            dbg(GENERAL_CHANNEL, "-----IM NODE: %d\n", TOS_NODE_ID);
-   
+    void findneighbor(){
+    Neighbor neighbor;
+    char* msg;
+   if(call NeighborHood.isEmpty()){
+   neighbor.node = TOS_NODE_ID;
+   call NeighborHood.pushback(neighbor);
    
    }
-   
-       //  dbg(GENERAL_CHANNEL, "-----IM NODE: %d\n", TOS_NODE_ID);
-   
+  
+
+   msg = "Help";
+    makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PING, 1, (uint8_t *)msg,(uint8_t *)sizeof(msg) );
    call Sender.send(sendPackage,AM_BROADCAST_ADDR);
    
    }
+   
+   
+   
+   
+   
 
 
    event void CommandHandler.printNeighbors(){
-    dbg(GENERAL_CHANNEL, "NODE: %d \n", TOS_NODE_ID);
    }
 
    event void CommandHandler.printRouteTable(){}
