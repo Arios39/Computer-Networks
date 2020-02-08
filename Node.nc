@@ -13,20 +13,39 @@
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
 
+typedef struct{
+
+uint16_t daddy_node;
+
+} Neighbor;
+
+
+typedef struct{
+
+Neighbor list[4];
+
+} Body;
+
+
+
+
+
 module Node{
    uses interface Boot;  
    uses interface SplitControl as AMControl;
    uses interface Receive;
 	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
-
+	uses interface List<Neighbor> as NeighborHood;
    uses interface CommandHandler;
 }
+
+
 
 implementation{
 
    pack sendPackage;
-
+	
    // Prototypes
    void findneighbor();
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
@@ -34,7 +53,7 @@ implementation{
    event void Boot.booted(){
    
       call AMControl.start();
-call neighbortimer.startPeriodic(10000);
+ call neighbortimer.startPeriodic(10000);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
@@ -80,15 +99,16 @@ findneighbor();
    
    void findneighbor(){
    
+         dbg(GENERAL_CHANNEL, "-----IM NODE: %d\n", TOS_NODE_ID);
    
-   makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR,50,0,0, 0, 0);
-   dbg( GENERAL_CHANNEL, "Hello \n");
    call Sender.send(sendPackage,AM_BROADCAST_ADDR);
    
    }
 
 
-   event void CommandHandler.printNeighbors(){}
+   event void CommandHandler.printNeighbors(){
+    dbg(GENERAL_CHANNEL, "NODE: %d \n", TOS_NODE_ID);
+   }
 
    event void CommandHandler.printRouteTable(){}
 

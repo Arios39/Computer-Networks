@@ -16,7 +16,7 @@ configuration NodeC{
 implementation {
     components MainC;
     components Node;
-   
+ 
     components new AMReceiverC(AM_PACK) as GeneralReceive;
 	components new TimerMilliC() as neighbortimer;
     Node -> MainC.Boot;
@@ -26,6 +26,9 @@ implementation {
     components ActiveMessageC;
     Node.AMControl -> ActiveMessageC;
 
+  components new ListC(Neighbor, 20) as NeighborHoodC;
+   Node.NeighborHood -> NeighborHoodC;
+   
     components new SimpleSendC(AM_PACK);
     Node.Sender -> SimpleSendC;
 
