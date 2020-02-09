@@ -27,6 +27,8 @@ module Node{
 	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
 	uses interface List<Neighbor> as NeighborHood;
+	uses interface Hashmap<int> as PacketCache;
+	
    uses interface CommandHandler;
 }
 
@@ -143,6 +145,7 @@ neighbor.node = Package->src;
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
    }
    
+   void addPack(){}
    
    
    

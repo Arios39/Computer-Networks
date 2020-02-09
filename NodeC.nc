@@ -30,6 +30,8 @@ implementation {
   components new ListC(Neighbor, 20) as NeighborHoodC;
    Node.NeighborHood -> NeighborHoodC;
 
+   components new HashmapC(int, 500) as PacketCacheC; //Hash to store packets in circulatio
+   Node.PacketCache -> PacketCacheC;  
    
     components new SimpleSendC(AM_PACK);
     Node.Sender -> SimpleSendC;
