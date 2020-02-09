@@ -35,7 +35,9 @@ module Node{
 implementation{
    pack sendPackage;
    // Prototypes
+   bool met(uint16_t neighbor);
    void findneighbor();
+    void Packhash(pack* Package);
      void printNeighbors();
      void ListHandler(pack *Package);
      void replypackage(pack *Package);
@@ -69,23 +71,27 @@ findneighbor();
 
   event void AMControl.stopDone(error_t err){}
 
+
+
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    
       dbg(GENERAL_CHANNEL, "Packet Received\n");
+            
       
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
-         
-	if(myMsg->protocol==PROTOCOL_PING){      
+ 
+	if(myMsg->protocol==PROTOCOL_PING){
            replypackage(myMsg);
+
       }  
       
       if(myMsg->protocol==PROTOCOL_PINGREPLY){      
            ListHandler(myMsg);
       }  
-            printNeighbors();
-
-       //  dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
+      
+      
+       // dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
          
          return msg;
       }
@@ -99,7 +105,11 @@ findneighbor();
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n" );
+      	   
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 1, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      if(!met(destination)){
+          Packhash(&sendPackage);
+          }
       call Sender.send(sendPackage, destination);
    }
 
@@ -140,12 +150,41 @@ neighbor.node = Package->src;
    }
    
    void replypackage(pack* Package){
-   
-   makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PINGREPLY, 0, 0, 0);
+       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PINGREPLY, 0, 0, 0);
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
    }
    
-   void addPack(){}
+   bool inthemap(pack* Package){
+   if(call PacketCache.contains(Package->src)){
+
+   return TRUE;
+
+   }
+   
+   return FALSE;
+   
+   }
+   
+   
+   void Packhash(pack* Package){
+      Neighbor node;
+      uint32_t i ,size = call NeighborHood.size();  
+      
+   if(!inthemap(Package)){
+   call PacketCache.insert(Package->src,Package);
+    
+   for(i =0; i < size;i++){
+   node=call NeighborHood.get(i); 
+   if(node.node!=0){
+         dbg(FLOODING_CHANNEL, "sending to: %d \n", node.node );
+         call Sender.send(sendPackage, node.node);
+   			
+   }
+   
+   
+}
+  } 
+   }
    
    
    
