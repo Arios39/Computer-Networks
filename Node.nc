@@ -27,7 +27,7 @@ module Node{
 	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
 	uses interface List<Neighbor> as NeighborHood;
-	uses interface Hashmap<int> as PacketCache;
+	uses interface Hashmap<pack> as PacketCache;
 	
    uses interface CommandHandler;
 }
@@ -35,7 +35,7 @@ module Node{
 implementation{
    pack sendPackage;
    // Prototypes
-
+uint16_t seqNum=0;
    bool met(uint16_t neighbor);
    bool inthemap(pack* Package);
    void findneighbor();
@@ -86,9 +86,7 @@ findneighbor();
  if(myMsg->dest== AM_BROADCAST_ADDR){
 	if(myMsg->protocol==PROTOCOL_PING){
            replypackage(myMsg);
-
-      }  
-      
+      }      
       if(myMsg->protocol==PROTOCOL_PINGREPLY){  
           
            ListHandler(myMsg);
@@ -101,17 +99,17 @@ findneighbor();
  
      
                 if(myMsg->protocol==PROTOCOL_PING){
-               
-         if( TOS_NODE_ID!=myMsg->dest){
+                          if( TOS_NODE_ID==myMsg->dest){
          
+        dbg(FLOODING_CHANNEL, "Packet recived \n" );
+         
+         }
+         if( TOS_NODE_ID!=myMsg->dest){
+         seqNum=myMsg->seq;
          Packhash(myMsg);
          
          }
-              if( TOS_NODE_ID==myMsg->dest){
-         
-        dbg(FLOODING_CHANNEL, "Ight ima head out \n" );
-         
-         }
+   
       }  
       
       if(myMsg->protocol==PROTOCOL_PINGREPLY){  
@@ -134,12 +132,11 @@ findneighbor();
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n" );
-      	   
-      makePack(&sendPackage, TOS_NODE_ID, destination, 0, PROTOCOL_PING, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
-      if(!met(destination)){
+      	   seqNum++;
+      makePack(&sendPackage, TOS_NODE_ID, destination, 0, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
+
       Packhash(&sendPackage);
-    
-          }
+   
       call Sender.send(sendPackage, destination);
    }
 
@@ -180,7 +177,7 @@ neighbor.node = Package->src;
 
     msg = "Will you be my Nebber";
     
-      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PING, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
+      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PING, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
 
    
@@ -190,35 +187,37 @@ neighbor.node = Package->src;
  //------------------------------------------------------------------------------------------------ 
   
    void replypackage(pack* Package){
-       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PINGREPLY, 0, 0, 0);
+       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PINGREPLY, 0, 0, 0);
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
    }
 //------------------------------------------------------------------------------------------------------- 
   
    bool inthemap(pack* Package){
-   
-   if(call PacketCache.contains(Package->src)){
- dbg(GENERAL_CHANNEL, "package already exists %s \n",Package->payload  );
-   return TRUE;
 
+      
+if(!call PacketCache.contains(Package->seq)){
+ //call PacketCache.remove(Package->src);
+ return FALSE;
+ }
+   if(call PacketCache.contains(Package->seq)){
+   dbg(GENERAL_CHANNEL, "packet ( %s ) already exist  \n",Package->payload ); 
+   return TRUE;
+   } 
+ 
    }
    
-   return FALSE;
-   
-   }
    
    
    void Packhash(pack* Package){
      Neighbor node;
 	uint16_t i,size = call NeighborHood.size(); 
-    // pack* myMsg=(pack*) payload;
     if(!inthemap(Package)){
-    call PacketCache.insert(Package->src, Package);
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
    if(node.node!=0&&node.node!=Package->src){
     dbg(FLOODING_CHANNEL, "Sending to : %d \n", node.node );
-   makePack(&sendPackage, Package->src, Package->dest, 0, PROTOCOL_PING, 0, (uint8_t*) Package->payload, sizeof( Package->payload));
+   makePack(&sendPackage, Package->src, Package->dest, 2, PROTOCOL_PING, seqNum, (uint8_t*) Package->payload, sizeof( Package->payload));
+     call PacketCache.insert(seqNum,sendPackage );
     call Sender.send(sendPackage, node.node);
    }
    }
