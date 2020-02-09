@@ -13,21 +13,11 @@
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
 
-
-
-
- 
-
-
 typedef struct{
 
 uint16_t node;
 
 } Neighbor;
-
-
-
-
 
 module Node{
    uses interface Boot;  
@@ -36,17 +26,11 @@ module Node{
 	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
 	uses interface List<Neighbor> as NeighborHood;
-
    uses interface CommandHandler;
 }
 
-
-
-
 implementation{
-
    pack sendPackage;
-	
    // Prototypes
    void findneighbor();
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
@@ -54,7 +38,7 @@ implementation{
    event void Boot.booted(){
    
       call AMControl.start();
- call neighbortimer.startPeriodic(10000);
+   call neighbortimer.startPeriodic(10000);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
@@ -84,7 +68,8 @@ findneighbor();
       dbg(GENERAL_CHANNEL, "Packet Received\n");
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
-         dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+         dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
+         
          return msg;
       }
 
@@ -96,9 +81,7 @@ findneighbor();
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
-      dbg(GENERAL_CHANNEL, "PING EVENT \n");
-         
-
+      dbg(GENERAL_CHANNEL, "PING EVENT \n" );
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Sender.send(sendPackage, destination);
    }
@@ -108,20 +91,10 @@ findneighbor();
 
 
    
-    void findneighbor(){
-    Neighbor neighbor;
-    char* msg;
-   if(call NeighborHood.isEmpty()){
-   neighbor.node = TOS_NODE_ID;
-   call NeighborHood.pushback(neighbor);
-   
-   }
-  
+     void findneighbor(){
+      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, 0, 0, 0, 0);
+       call Sender.send(sendPackage, AM_BROADCAST_ADDR);
 
-   msg = "Help";
-    makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PING, 1, (uint8_t *)msg,(uint8_t *)sizeof(msg) );
-   call Sender.send(sendPackage,AM_BROADCAST_ADDR);
-   
    }
    
    
@@ -131,6 +104,8 @@ findneighbor();
 
 
    event void CommandHandler.printNeighbors(){
+     dbg(GENERAL_CHANNEL, "Node \n", TOS_NODE_ID );
+   
    }
 
    event void CommandHandler.printRouteTable(){}
