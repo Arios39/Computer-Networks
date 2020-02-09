@@ -35,8 +35,9 @@ module Node{
 implementation{
    pack sendPackage;
    // Prototypes
-   bool neighbordiscovery=FALSE;
+
    bool met(uint16_t neighbor);
+   bool inthemap(pack* Package);
    void findneighbor();
     void Packhash(pack* Package);
      void printNeighbors();
@@ -76,12 +77,13 @@ findneighbor();
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    
-     //dbg(GENERAL_CHANNEL, "Packet Received\n");
+    // dbg(GENERAL_CHANNEL, "Packet Received\n");
             
       
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
- if(!neighbordiscovery){
+ //---------------------------------neighbordiscovery        
+ if(myMsg->dest== AM_BROADCAST_ADDR){
 	if(myMsg->protocol==PROTOCOL_PING){
            replypackage(myMsg);
 
@@ -92,19 +94,30 @@ findneighbor();
            ListHandler(myMsg);
       }  
       }
-     else{
+      
+     //-------------------------------------------endofneighbordiscovery
      
-                       
-           
-                 if(!met(myMsg->dest)){
-     dbg(GENERAL_CHANNEL, "Packet Received %d \n",myMsg->dest );
-          Packhash(&sendPackage);
-          }
-           
-           
-
+    else{
+ 
      
-     
+                if(myMsg->protocol==PROTOCOL_PING){
+               
+         if( TOS_NODE_ID!=myMsg->dest){
+         
+         Packhash(myMsg);
+         
+         }
+              if( TOS_NODE_ID==myMsg->dest){
+         
+        dbg(FLOODING_CHANNEL, "Ight ima head out \n" );
+         
+         }
+      }  
+      
+      if(myMsg->protocol==PROTOCOL_PINGREPLY){  
+   
+      
+      }         
      }
       
        // dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
@@ -124,8 +137,8 @@ findneighbor();
       	   
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, PROTOCOL_PING, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       if(!met(destination)){
-      neighbordiscovery=TRUE;
-          Packhash(&sendPackage);
+      Packhash(&sendPackage);
+    
           }
       call Sender.send(sendPackage, destination);
    }
@@ -148,7 +161,7 @@ return FALSE;
 }
 
 
-// ListHandler will push the nodes into a list
+//----------------------------------------------------------------------- ListHandler will push the nodes into a list
 
 void ListHandler(pack* Package){
 Neighbor neighbor;
@@ -158,22 +171,34 @@ neighbor.node = Package->src;
    // dbg(GENERAL_CHANNEL, "Havent met you %d\n", Package->src);
 }
 }
+//---------------------------------------------------------------------------------
 
-   
+//------------------------------------------------------------------------------------findneighbor function 
+  
      void findneighbor(){
-      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PING, 0, 0, 0);
+     char * msg;
+
+    msg = "Will you be my Nebber";
+    
+      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PING, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
 
-   }
    
+   }
+ //-----------------------------------------------------------------------------------------------
+ 
+ //------------------------------------------------------------------------------------------------ 
+  
    void replypackage(pack* Package){
        makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PINGREPLY, 0, 0, 0);
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
    }
-   
+//------------------------------------------------------------------------------------------------------- 
+  
    bool inthemap(pack* Package){
-   if(call PacketCache.contains(Package->src)){
-
+   
+   if(call PacketCache.contains(sizeof(Package->payload))){
+ dbg(GENERAL_CHANNEL, "package already exists %s \n",Package->payload  );
    return TRUE;
 
    }
@@ -184,24 +209,22 @@ neighbor.node = Package->src;
    
    
    void Packhash(pack* Package){
-      Neighbor node;
-      uint32_t i ,size = call NeighborHood.size();  
-      
-   if(!inthemap(Package)){
-   call PacketCache.insert(Package->src,Package);
-    
-   for(i =0; i < size;i++){
+     Neighbor node;
+	uint16_t i,size = call NeighborHood.size(); 
+    // pack* myMsg=(pack*) payload;
+    if(!inthemap(Package)){
+    call PacketCache.insert(sizeof(Package->payload), Package);
+       for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
-   if(node.node!=0){
-         dbg(FLOODING_CHANNEL, "sending to: %d \n", node.node );
-         makePack(&sendPackage, Package->src, Package->dest, 0, PROTOCOL_PING, 0, Package->payload, PACKET_MAX_PAYLOAD_SIZE);
-         call Sender.send(sendPackage, node.node);
-   			
+   if(node.node!=0&&node.node!=Package->src){
+    dbg(FLOODING_CHANNEL, "Sending to : %d \n", node.node );
+   makePack(&sendPackage, Package->src, Package->dest, 0, PROTOCOL_PING, 0, (uint8_t*) Package->payload, sizeof( Package->payload));
+    call Sender.send(sendPackage, node.node);
    }
-   
-   
-}
-  } 
+   }
+    
+    
+    }
    }
    
    
