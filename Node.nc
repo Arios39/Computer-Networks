@@ -35,6 +35,7 @@ module Node{
 implementation{
    pack sendPackage;
    // Prototypes
+   bool neighbordiscovery=FALSE;
    bool met(uint16_t neighbor);
    void findneighbor();
     void Packhash(pack* Package);
@@ -75,21 +76,36 @@ findneighbor();
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    
-      dbg(GENERAL_CHANNEL, "Packet Received\n");
+     //dbg(GENERAL_CHANNEL, "Packet Received\n");
             
       
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
- 
+ if(!neighbordiscovery){
 	if(myMsg->protocol==PROTOCOL_PING){
            replypackage(myMsg);
 
       }  
       
-      if(myMsg->protocol==PROTOCOL_PINGREPLY){      
+      if(myMsg->protocol==PROTOCOL_PINGREPLY){  
+          
            ListHandler(myMsg);
       }  
-      
+      }
+     else{
+     
+                       
+           
+                 if(!met(myMsg->dest)){
+     dbg(GENERAL_CHANNEL, "Packet Received %d \n",myMsg->dest );
+          Packhash(&sendPackage);
+          }
+           
+           
+
+     
+     
+     }
       
        // dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
          
@@ -106,8 +122,9 @@ findneighbor();
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n" );
       	   
-      makePack(&sendPackage, TOS_NODE_ID, destination, 0, 1, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      makePack(&sendPackage, TOS_NODE_ID, destination, 0, PROTOCOL_PING, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       if(!met(destination)){
+      neighbordiscovery=TRUE;
           Packhash(&sendPackage);
           }
       call Sender.send(sendPackage, destination);
@@ -177,6 +194,7 @@ neighbor.node = Package->src;
    node=call NeighborHood.get(i); 
    if(node.node!=0){
          dbg(FLOODING_CHANNEL, "sending to: %d \n", node.node );
+         makePack(&sendPackage, Package->src, Package->dest, 0, PROTOCOL_PING, 0, Package->payload, PACKET_MAX_PAYLOAD_SIZE);
          call Sender.send(sendPackage, node.node);
    			
    }
