@@ -36,12 +36,13 @@ implementation{
    void findneighbor();
      void printNeighbors();
      void ListHandler(pack *Package);
+     void replypackage(pack *Package);
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
  
    event void Boot.booted(){
    
       call AMControl.start();
-   call neighbortimer.startPeriodic(250);
+   call neighbortimer.startOneShot(250);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
@@ -72,8 +73,16 @@ findneighbor();
       
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
+         
+	if(myMsg->protocol==PROTOCOL_PING){      
+           replypackage(myMsg);
+      }  
+      
+      if(myMsg->protocol==PROTOCOL_PINGREPLY){      
            ListHandler(myMsg);
+      }  
             printNeighbors();
+
        //  dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
          
          return msg;
@@ -88,7 +97,7 @@ findneighbor();
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n" );
-      makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      makePack(&sendPackage, TOS_NODE_ID, destination, 0, 1, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Sender.send(sendPackage, destination);
    }
 
@@ -123,9 +132,15 @@ neighbor.node = Package->src;
 
    
      void findneighbor(){
-      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, 0, 0, 0, 0);
+      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PING, 0, 0, 0);
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
 
+   }
+   
+   void replypackage(pack* Package){
+   
+   makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PINGREPLY, 0, 0, 0);
+       call Sender.send(sendPackage, AM_BROADCAST_ADDR);
    }
    
    
@@ -141,6 +156,7 @@ neighbor.node = Package->src;
          dbg(GENERAL_CHANNEL, "Hello Neighbor im Node: %d \n", node.node );
    
    }
+   
    
    }
    
