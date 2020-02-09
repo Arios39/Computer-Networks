@@ -16,6 +16,7 @@
 typedef struct{
 
 uint16_t node;
+uint16_t Q;
 
 } Neighbor;
 
@@ -33,12 +34,14 @@ implementation{
    pack sendPackage;
    // Prototypes
    void findneighbor();
+     void printNeighbors();
+     void ListHandler(pack *Package);
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
-
+ 
    event void Boot.booted(){
    
       call AMControl.start();
-   call neighbortimer.startPeriodic(10000);
+   call neighbortimer.startPeriodic(250);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
@@ -66,9 +69,12 @@ findneighbor();
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    
       dbg(GENERAL_CHANNEL, "Packet Received\n");
+      
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
-         dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
+           ListHandler(myMsg);
+            printNeighbors();
+       //  dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
          
          return msg;
       }
@@ -86,9 +92,34 @@ findneighbor();
       call Sender.send(sendPackage, destination);
    }
 
+//--------------------------------------------------------------------------project 1 functions
+
+//met will check if we already have node in list
+
+bool met(uint16_t neighbor){
+Neighbor node;
+uint16_t i,size = call NeighborHood.size();   
+   for(i =0; i < size;i++){
+   node=call NeighborHood.get(i); 
+   if(node.node==neighbor){
+        // dbg(GENERAL_CHANNEL, "We have already met dude im node: %d \n", neighbor );
+   return TRUE;
+   }
+}
+return FALSE;
+}
 
 
+// ListHandler will push the nodes into a list
 
+void ListHandler(pack* Package){
+Neighbor neighbor;
+if (!met(Package->src)){
+neighbor.node = Package->src;
+ call NeighborHood.pushback(neighbor);
+   // dbg(GENERAL_CHANNEL, "Havent met you %d\n", Package->src);
+}
+}
 
    
      void findneighbor(){
@@ -101,11 +132,25 @@ findneighbor();
    
    
    
-
-
-   event void CommandHandler.printNeighbors(){
-     dbg(GENERAL_CHANNEL, "Node \n", TOS_NODE_ID );
+   void printNeighbors(){
+   Neighbor node;
+	uint16_t i,size = call NeighborHood.size();   
+   for(i =0; i < size;i++){
+   node=call NeighborHood.get(i); 
+   if(node.node!=0){
+         dbg(GENERAL_CHANNEL, "Hello Neighbor im Node: %d \n", node.node );
    
+   }
+   
+   }
+   
+   }
+   
+   
+   
+
+
+   event void CommandHandler.printNeighbors(){   
    }
 
    event void CommandHandler.printRouteTable(){}

@@ -12,6 +12,7 @@
 #include "includes/packet.h"
 
 configuration NodeC{
+
 }
 implementation {
     components MainC;
