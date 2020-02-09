@@ -197,7 +197,7 @@ neighbor.node = Package->src;
   
    bool inthemap(pack* Package){
    
-   if(call PacketCache.contains(sizeof(Package->payload))){
+   if(call PacketCache.contains(Package->src)){
  dbg(GENERAL_CHANNEL, "package already exists %s \n",Package->payload  );
    return TRUE;
 
@@ -213,7 +213,7 @@ neighbor.node = Package->src;
 	uint16_t i,size = call NeighborHood.size(); 
     // pack* myMsg=(pack*) payload;
     if(!inthemap(Package)){
-    call PacketCache.insert(sizeof(Package->payload), Package);
+    call PacketCache.insert(Package->src, Package);
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
    if(node.node!=0&&node.node!=Package->src){

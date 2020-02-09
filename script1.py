@@ -31,4 +31,7 @@ s.ping(1, 7, "hi");
 s.runTime(1);
 
 
+s.ping(3, 7, "Hello 7");
+s.runTime(1);
+
 
