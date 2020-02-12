@@ -34,7 +34,7 @@ s.runTime(20);
 s.ping(3, 7, "Hello 7");
 s.runTime(20);
 
-s.ping(3, 37, "This is the way");
+s.ping(3, 7, "This is the way");
 s.runTime(20);
 
 
