@@ -19,6 +19,7 @@ uint16_t node;
 uint16_t Q;
 
 } Neighbor;
+// neighbor struct that will hold a node and the quality of the node connection
 
 module Node{
    uses interface Boot;  
@@ -34,7 +35,8 @@ module Node{
 
 implementation{
    pack sendPackage;
-   // Prototypes
+   // Project 1 implementations (functions)
+   
 uint16_t seqNum=0;
    bool met(uint16_t neighbor);
    bool inthemap(pack* Package);
@@ -44,16 +46,20 @@ uint16_t seqNum=0;
      void ListHandler(pack *Package);
      void replypackage(pack *Package);
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
- 
-   event void Boot.booted(){
+   // end of project 1 functions 
    
+   event void Boot.booted(){
       call AMControl.start();
+      // a timer that will add and drop neighbors
+      // the timmer will have a oneshot of (250)
+      
    call neighbortimer.startOneShot(250);
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
    
    event void neighbortimer.fired(){
+//calls nieghbor discovery discover 
 
 findneighbor();
    
@@ -78,47 +84,43 @@ findneighbor();
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    
     // dbg(GENERAL_CHANNEL, "Packet Received\n");
-            
-      
+
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
- //---------------------------------neighbordiscovery        
- if(myMsg->dest== AM_BROADCAST_ADDR){
-	if(myMsg->protocol==PROTOCOL_PING){
-           replypackage(myMsg);
+         if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
+         // will drop packet when ttl expires packet will be dropped
+         
+         dbg(FLOODING_CHANNEL, "TTL has expired, packet from %d to %d will be dropped\n",myMsg->src, myMsg->dest);
+         }
+         
+         if (myMsg->TTL!=0 && myMsg->dest!= TOS_NODE_ID){
+         seqNum = myMsg->seq;
+         
+         // will make all seq of node and packet nodes equal 
+         // This will help to keep track of what nodes have recived that packet in the hash
+         
+         if(myMsg->protocol==PROTOCOL_PING){
+           if( TOS_NODE_ID!=myMsg->dest){
+                    //If message is ping it will put packet in hash 
+                    
+         Packhash(myMsg);
+         }
+         
       }      
       if(myMsg->protocol==PROTOCOL_PINGREPLY){  
-          
+          // if ping reply add nieghbor to neighbor list && will take care of nodes being added or dropped
            ListHandler(myMsg);
       }  
-      }
-      
-     //-------------------------------------------endofneighbordiscovery
-     
-    else{
- 
-     
-                if(myMsg->protocol==PROTOCOL_PING){
-                          if( TOS_NODE_ID==myMsg->dest){
-         
-        dbg(FLOODING_CHANNEL, "Packet recived \n" );
          
          }
-         if( TOS_NODE_ID!=myMsg->dest){
-         seqNum=myMsg->seq;
-         Packhash(myMsg);
+         // This will take care of the dest node from reciving the deliverd packet again and again...
          
-         }
-   
-      }  
-      
-      if(myMsg->protocol==PROTOCOL_PINGREPLY){  
-   
-      
-      }         
-     }
-      
-       // dbg(GENERAL_CHANNEL, "Package Payload: %d\n", myMsg->src);
+         if(myMsg->dest == TOS_NODE_ID && !inthemap(myMsg)&&myMsg->protocol==PROTOCOL_PING){
+         seqNum = myMsg->seq;
+          dbg(FLOODING_CHANNEL, "I have recived a message from %d and it says %s\n",myMsg->src, myMsg->payload);
+   Packhash(myMsg);
+          }     
+     //-------------------------------------------endofneighbordiscovery 
          
          return msg;
       }
@@ -131,18 +133,16 @@ findneighbor();
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
-      dbg(GENERAL_CHANNEL, "PING EVENT \n" );
-      	   seqNum++;
-      makePack(&sendPackage, TOS_NODE_ID, destination, 0, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
-
-      Packhash(&sendPackage);
-   
-      call Sender.send(sendPackage, destination);
+      dbg(GENERAL_CHANNEL, "PING EVENT destination %d\n", destination );
+      seqNum++;
+      makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
+      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+      
    }
 
 //--------------------------------------------------------------------------project 1 functions
 
-//met will check if we already have node in list
+//met will check if we already have node in neighbor list
 
 bool met(uint16_t neighbor){
 Neighbor node;
@@ -163,6 +163,7 @@ return FALSE;
 void ListHandler(pack* Package){
 Neighbor neighbor;
 if (!met(Package->src)){
+dbg(NEIGHBOR_CHANNEL, "Node %d was added to %d's Neighborhood\n", Package->src, TOS_NODE_ID);
 neighbor.node = Package->src;
  call NeighborHood.pushback(neighbor);
    // dbg(GENERAL_CHANNEL, "Havent met you %d\n", Package->src);
@@ -174,60 +175,85 @@ neighbor.node = Package->src;
   
      void findneighbor(){
      char * msg;
-
-    msg = "Will you be my Nebber";
+    msg = "Help";
     
-      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PING, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
+    dbg(NEIGHBOR_CHANNEL, "Sending help signal to look for neighbor! \n");
+      makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PINGREPLY, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
-
-   
    }
  //-----------------------------------------------------------------------------------------------
  
- //------------------------------------------------------------------------------------------------ 
+ //------------------------------------------------------------------------------------------------ reply message will be sent to node who sent ping
+
   
    void replypackage(pack* Package){
-       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PINGREPLY, 0, 0, 0);
+       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PINGREPLY, 0, 0, 0);
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
    }
-//------------------------------------------------------------------------------------------------------- 
+//------------------------------------------------------------------------------------------------------- inthehashmap will check if node already has packet in cache
+ 
   
    bool inthemap(pack* Package){
 
       
 if(!call PacketCache.contains(Package->seq)){
  //call PacketCache.remove(Package->src);
+ dbg(FLOODING_CHANNEL, "Adding packet ( %s ) into cache with seqNum %d\n",Package->payload,Package->seq ); 
  return FALSE;
  }
-   if(call PacketCache.contains(Package->seq)){
-   dbg(GENERAL_CHANNEL, "packet ( %s ) already exist  \n",Package->payload ); 
+   if(call PacketCache.contains(Package->seq)&&Package->payload!="Help"){
+   dbg(FLOODING_CHANNEL, "packet ( %s ) already in cache will drop packet  \n",Package->payload ); 
+   return TRUE;
+   } 
+   
+    if(call PacketCache.contains(Package->seq)&&Package->payload=="Help"){
+    //ignore help signal just add to neighborhood
+    
+    
    return TRUE;
    } 
  
+ 
    }
+ //---------------------------------------------Flood will create flooding message and will send it to all neighboring nodes (this is accomplished by iterating thru neighbor list and making flooding packet)
    
-   
-   
-   void Packhash(pack* Package){
+      void flood(pack* Package){
      Neighbor node;
 	uint16_t i,size = call NeighborHood.size(); 
-    if(!inthemap(Package)){
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
    if(node.node!=0&&node.node!=Package->src){
-    dbg(FLOODING_CHANNEL, "Sending to : %d \n", node.node );
-   makePack(&sendPackage, Package->src, Package->dest, 2, PROTOCOL_PING, seqNum, (uint8_t*) Package->payload, sizeof( Package->payload));
-     call PacketCache.insert(seqNum,sendPackage );
+    dbg(FLOODING_CHANNEL, "Flooding Packet to : %d \n", node.node );
+   makePack(&sendPackage, Package->src, Package->dest, Package->TTL-1, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
     call Sender.send(sendPackage, node.node);
    }
    }
     
     
+    
+   
+   }
+  //-----------------------------------------------------------------------------
+  //this function will push packet to our node cache(PacketCache)
+   
+   void Packhash(pack* Package){
+      
+    if(!inthemap(Package)&&Package->dest==TOS_NODE_ID){
+    call PacketCache.insert(seqNum,sendPackage );
+    replypackage(Package);
     }
+   
+    if(!inthemap(Package)&&Package->dest!= TOS_NODE_ID){
+    call PacketCache.insert(seqNum,sendPackage );
+    replypackage(Package);
+    flood(Package);
+    }
+
    }
    
+
    
-   
+   // This will print our nieghbors by itterating thru the neighbor list of current node(mote)
    
    void printNeighbors(){
    Neighbor node;
@@ -248,7 +274,8 @@ if(!call PacketCache.contains(Package->seq)){
    
 
 
-   event void CommandHandler.printNeighbors(){   
+   event void CommandHandler.printNeighbors(){ 
+   printNeighbors();  
    }
 
    event void CommandHandler.printRouteTable(){}
