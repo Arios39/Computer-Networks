@@ -17,7 +17,8 @@ typedef struct{
 
 uint16_t node;
 uint16_t Q;
-
+uint16_t PacketSent;
+uint16_t PacketArr;
 } Neighbor;
 // neighbor struct that will hold a node and the quality of the node connection
 
@@ -60,9 +61,11 @@ uint16_t seqNum=0;
    
    event void neighbortimer.fired(){
 //calls nieghbor discovery discover 
-
+//Neighbor neighbor;
 findneighbor();
-   
+   //neighbor.PacketSent++;
+     //dbg(FLOODING_CHANNEL, "The number of Packets sent is %d\n",neighbor.PacketSent); //QUALITY TEST
+       
    }
    
    
@@ -82,7 +85,9 @@ findneighbor();
 
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
-   
+   Neighbor neighbor;
+  
+  
     // dbg(GENERAL_CHANNEL, "Packet Received\n");
 
       if(len==sizeof(pack)){
@@ -119,6 +124,10 @@ findneighbor();
          seqNum = myMsg->seq;
           dbg(FLOODING_CHANNEL, "I have recived a message from %d and it says %s\n",myMsg->src, myMsg->payload);
    Packhash(myMsg);
+   			//neighbor.PacketArr++;
+   			neighbor.Q = (neighbor.PacketArr/neighbor.PacketSent);
+   			//dbg(FLOODING_CHANNEL, "The Successful packets from %d to %d is %d\n",myMsg->src, myMsg->dest, neighbor.PacketArr); // More QUALITY TEST
+   			dbg(FLOODING_CHANNEL, "The Quality from %d to %d is %d\n",myMsg->src, myMsg->dest, neighbor.Q); // More QUALITY TEST
           }     
      //-------------------------------------------endofneighbordiscovery 
          
@@ -166,6 +175,10 @@ if (!met(Package->src)){
 dbg(NEIGHBOR_CHANNEL, "Node %d was added to %d's Neighborhood\n", Package->src, TOS_NODE_ID);
 neighbor.node = Package->src;
  call NeighborHood.pushback(neighbor);
+ 		neighbor.PacketArr++;
+   		//neighbor.Q++;
+   	dbg(FLOODING_CHANNEL, "The Successful packets is %d\n", neighbor.PacketArr); // More QUALITY TEST
+   		//dbg(FLOODING_CHANNEL, "The Quality from %d to %d is %d\n",myMsg->src, myMsg->dest, neighbor.Q); 
    // dbg(GENERAL_CHANNEL, "Havent met you %d\n", Package->src);
 }
 }
@@ -174,12 +187,16 @@ neighbor.node = Package->src;
 //------------------------------------------------------------------------------------findneighbor function 
   
      void findneighbor(){
+     Neighbor neighbor;
      char * msg;
     msg = "Help";
     
     dbg(NEIGHBOR_CHANNEL, "Sending help signal to look for neighbor! \n");
       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PINGREPLY, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+       neighbor.PacketSent++;
+       dbg(FLOODING_CHANNEL, "The number of Packets sent is %d\n",neighbor.PacketSent); //QUALITY TEST
+       
    }
  //-----------------------------------------------------------------------------------------------
  
@@ -219,6 +236,7 @@ if(!call PacketCache.contains(Package->seq)){
    
       void flood(pack* Package){
      Neighbor node;
+     Neighbor neighbor;
 	uint16_t i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
@@ -226,6 +244,9 @@ if(!call PacketCache.contains(Package->seq)){
     dbg(FLOODING_CHANNEL, "Flooding Packet to : %d \n", node.node );
    makePack(&sendPackage, Package->src, Package->dest, Package->TTL-1, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
     call Sender.send(sendPackage, node.node);
+    	//neighbor.PacketSent++;
+    	//dbg(FLOODING_CHANNEL, "The Packets sent %d\n", neighbor.PackSent);
+   			//dbg(FLOODING_CHANNEL, "The Packets sent from %d to %d is %d\n",myMsg->src, myMsg->dest, neighbor.PacketSent); //QUALITY TEST
    }
    }
     
