@@ -349,15 +349,15 @@ void localroute(){
    }
 }
 
-/*void mergeRoute(Route * new){ //update hte local nodes routing table based on new route
+void mergeRoute(Route *route){ //update hte local nodes routing table based on new route
 uint16_t i;
 for(i=0; i<numRoutes; ++i){
-	if (new ->Destination == routingTable[i].Destination){
-		if(new->Cost+1 < routingTable[i].Cost){
+	if (route ->Destination == routingTable[i].Destination){
+		if(route->Cost+1 < routingTable[i].Cost){
 			dbg(ROUTING_CHANNEL, "Found Better Route");
 			break;
 		
-		} else if (new -> NexetHop == routingTable[i].NextHop){
+		} else if (route -> NextHop == routingTable[i].NextHop){
 		dbg(ROUTING_CHANNEL, "Current Next hop has been changed");
 		break;
 		}
@@ -370,7 +370,7 @@ for(i=0; i<numRoutes; ++i){
 }
 if(i == numRoutes){
 	dbg(ROUTING_CHANNEL, "This is a new route");
-		if(numRoutes < MAXROUTES){
+		if(numRoutes < 120){
 		++numRoutes;
 	} else{
 	dbg(ROUTING_CHANNEL, "Cant fill this route in table");
@@ -378,13 +378,12 @@ if(i == numRoutes){
 }
 
 }
-routingTable[i] = *new;
+routingTable[i] = *route;
 //reset TTL
-routTable[i].rTTL = 100;
+routingTable[i].rTTL = 100;
 //account the hop to get to next node
 ++routingTable[i].Cost;
-}*/
-
+}
 //-------------------------------------------------------end of project2 functions
 
    event void CommandHandler.printNeighbors(){ 
