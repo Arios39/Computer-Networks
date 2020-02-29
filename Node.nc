@@ -12,6 +12,9 @@
 #include "includes/CommandMsg.h"
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
+//#define MAX_ROUTES 128;
+
+
 
 typedef struct{
 
@@ -21,6 +24,19 @@ uint16_t node;
 //uint16_t PacketArr;
 } Neighbor;
 // neighbor struct that will hold a node and the quality of the node connection
+
+typedef struct{ //Defines each entry in the routeing table 
+uint16_t Destination;
+uint16_t NextHop;
+uint16_t Cost;
+uint16_t rTTL;
+}Route;
+
+
+
+
+
+
 
 module Node{
    uses interface Boot;  
@@ -40,7 +56,6 @@ module Node{
 implementation{
    pack sendPackage;
    // Project 1 implementations (functions)
-   
 uint16_t seqNum=0;
 uint16_t PacketSent;
 uint16_t PacketArr;
@@ -56,7 +71,9 @@ float Q;
    // end of project 1 functions 
    
 //Project 2 implementations (functions)]
-   
+    uint16_t numRoutes =0;
+ Route routingTable[128];
+  
     void printRouteTable();
    void localroute();
 // end of Project 2 implementations (functions)
@@ -330,10 +347,43 @@ void localroute(){
    			
    }
    }
-    
-    
+}
+
+/*void mergeRoute(Route * new){ //update hte local nodes routing table based on new route
+uint16_t i;
+for(i=0; i<numRoutes; ++i){
+	if (new ->Destination == routingTable[i].Destination){
+		if(new->Cost+1 < routingTable[i].Cost){
+			dbg(ROUTING_CHANNEL, "Found Better Route");
+			break;
+		
+		} else if (new -> NexetHop == routingTable[i].NextHop){
+		dbg(ROUTING_CHANNEL, "Current Next hop has been changed");
+		break;
+		}
+		else{
+		dbg(ROUTING_CHANNEL, "ignore route");
+		return;
+		}
+}
 
 }
+if(i == numRoutes){
+	dbg(ROUTING_CHANNEL, "This is a new route");
+		if(numRoutes < MAXROUTES){
+		++numRoutes;
+	} else{
+	dbg(ROUTING_CHANNEL, "Cant fill this route in table");
+	return;
+}
+
+}
+routingTable[i] = *new;
+//reset TTL
+routTable[i].rTTL = 100;
+//account the hop to get to next node
+++routingTable[i].Cost;
+}*/
 
 //-------------------------------------------------------end of project2 functions
 
