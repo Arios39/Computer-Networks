@@ -178,6 +178,7 @@ Neighbor neighbor;
 if (!met(Package->src)){
 dbg(NEIGHBOR_CHANNEL, "Node %d was added to %d's Neighborhood\n", Package->src, TOS_NODE_ID);
 neighbor.node = Package->src;
+call RoutingTable.insert(Package->src,1 );
  call NeighborHood.pushback(neighbor);
  		PacketArr++;
    		PacketSent;
@@ -302,20 +303,27 @@ if(!call PacketCache.contains(Package->seq)){
    
    }
    
-  /* void CalcQ(){
-  Neighbor neighbor;
-    neighbor.PacketSent;
-    neighbor.PacketArr;
-    neighbor.Q=(neighbor.PacketArr/neighbor.PacketSent);
-    //dbg(FLOODING_CHANNEL, "The Quality from %d to %d is %d\n",myMsg->src, myMsg->dest, neighbor.Q);
+   
+   void printRouteTable(){
+  uint16_t neighborthru = call RoutingTable.size();
+  uint16_t hop;
+for(int i=0; i<neighborthru;i++){
+ hop=call RoutingTable.get(i); 
+if (hop!=0){
+dbg(GENERAL_CHANNEL, "Node %d has a hop distance to node %d of %d", TOS_NODE_ID,i,hop);
+}
+}
+   
    }
-*/
+   
 
    event void CommandHandler.printNeighbors(){ 
    printNeighbors();  
    }
 
-   event void CommandHandler.printRouteTable(){}
+   event void CommandHandler.printRouteTable(){
+   printRouteTable();
+   }
 
    event void CommandHandler.printLinkState(){}
 
