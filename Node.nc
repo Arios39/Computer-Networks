@@ -58,7 +58,7 @@ float Q;
 //Project 2 implementations (functions)]
    
     void printRouteTable();
-   
+   void localroute();
 // end of Project 2 implementations (functions)
    
    event void Boot.booted(){
@@ -75,7 +75,7 @@ float Q;
 //calls nieghbor discovery discover 
 //Neighbor neighbor;
 findneighbor();
-   
+
        
    }
    
@@ -103,6 +103,7 @@ findneighbor();
 
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
+          localroute();
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
          
@@ -184,8 +185,6 @@ Neighbor neighbor;
 if (!met(Package->src)){
 dbg(NEIGHBOR_CHANNEL, "Node %d was added to %d's Neighborhood\n", Package->src, TOS_NODE_ID);
 neighbor.node = Package->src;
-call RoutingTable.insert(Package->src,1 );
- printRouteTable();
  call NeighborHood.pushback(neighbor);
  		PacketArr++;
    		PacketSent;
@@ -215,6 +214,7 @@ call RoutingTable.insert(Package->src,1 );
       // neighbor.PacketSent++;
       PacketSent++;
       dbg(NEIGHBOR_CHANNEL, "The number of Packets sent is %d\n",PacketSent); //QUALITY TEST
+
        
    }
  //-----------------------------------------------------------------------------------------------
@@ -308,7 +308,7 @@ if(!call PacketCache.contains(Package->seq)){
    
    }
    
-   
+   //---------------------------------------------------Project2 functions
    void printRouteTable(){
   uint16_t size = call RoutingTable.size();
   uint16_t hop,i=0;
@@ -319,6 +319,23 @@ dbg(ROUTING_CHANNEL, "Node %d has a hop distance to node %d of %d \n", TOS_NODE_
 }
 }
 } 
+void localroute(){
+     Neighbor node;
+	uint16_t i,size = call NeighborHood.size(); 
+       for(i =0; i < size;i++){
+   node=call NeighborHood.get(i); 
+   if(node.node!=0){
+    call RoutingTable.insert(node.node,1);
+    dbg(ROUTING_CHANNEL, "Local routing table inserted Node %d with a distance of 1\n",node.node);
+   			
+   }
+   }
+    
+    
+
+}
+
+//-------------------------------------------------------end of project2 functions
 
    event void CommandHandler.printNeighbors(){ 
    printNeighbors();  
