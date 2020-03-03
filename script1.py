@@ -19,23 +19,21 @@ s.bootAll();
 
     # Add the main channels. These channels are declared in includes/channels.h
 
-s.addChannel(s.GENERAL_CHANNEL);
+#s.addChannel(s.GENERAL_CHANNEL);
 s.addChannel(s.NEIGHBOR_CHANNEL);
-s.addChannel(s.FLOODING_CHANNEL);
+#s.addChannel(s.FLOODING_CHANNEL);
+s.addChannel(s.ROUTING_CHANNEL);
     # After sending a ping, simulate a little to prevent collision.
 s.runTime(1);
 
 
 
-#s.ping(1, 7, "hi");
-#s.runTime(20);
-
-
-#s.ping(3, 7, "Hello 7");
-#s.runTime(20);
-
-s.ping(3, 7, "This is the way");
+s.ping(1, 7, "hi");
 s.runTime(20);
+
+
+
+
 
 
 

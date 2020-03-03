@@ -55,6 +55,12 @@ float Q;
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
    // end of project 1 functions 
    
+//Project 2 implementations (functions)]
+   
+    void printRouteTable();
+   
+// end of Project 2 implementations (functions)
+   
    event void Boot.booted(){
       call AMControl.start();
       // a timer that will add and drop neighbors
@@ -179,14 +185,13 @@ if (!met(Package->src)){
 dbg(NEIGHBOR_CHANNEL, "Node %d was added to %d's Neighborhood\n", Package->src, TOS_NODE_ID);
 neighbor.node = Package->src;
 call RoutingTable.insert(Package->src,1 );
+ printRouteTable();
  call NeighborHood.pushback(neighbor);
  		PacketArr++;
    		PacketSent;
    		
-  dbg(FLOODING_CHANNEL, "The Successful packets from Node %d to %d is %d\n",Package->src, TOS_NODE_ID, PacketArr); // More QUALITY TEST
    		 
     Q=((PacketSent)/((float)PacketArr));
-    dbg(FLOODING_CHANNEL, "The Quality from %d to %d is %f\n",Package->src, TOS_NODE_ID, Q);
    		 
    		 
    		 
@@ -305,17 +310,15 @@ if(!call PacketCache.contains(Package->seq)){
    
    
    void printRouteTable(){
-  uint16_t neighborthru = call RoutingTable.size();
-  uint16_t hop;
-for(int i=0; i<neighborthru;i++){
+  uint16_t size = call RoutingTable.size();
+  uint16_t hop,i=0;
+for(i=0; i < size; i++){
  hop=call RoutingTable.get(i); 
 if (hop!=0){
-dbg(GENERAL_CHANNEL, "Node %d has a hop distance to node %d of %d", TOS_NODE_ID,i,hop);
+dbg(ROUTING_CHANNEL, "Node %d has a hop distance to node %d of %d \n", TOS_NODE_ID,i,hop);
 }
 }
-   
-   }
-   
+} 
 
    event void CommandHandler.printNeighbors(){ 
    printNeighbors();  
