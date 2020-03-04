@@ -76,6 +76,7 @@ float Q;
   
     void printRouteTable();
    void localroute();
+  // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
    
    event void Boot.booted(){
@@ -383,6 +384,15 @@ routingTable[i] = *route;
 routingTable[i].rTTL = 100;
 //account the hop to get to next node
 ++routingTable[i].Cost;
+}
+
+
+
+void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes){
+uint16_t i;
+for(i=0; i < numNewRoutes; ++i){
+mergeRoute(&newRoute[i]);
+}
 }
 //-------------------------------------------------------end of project2 functions
 
