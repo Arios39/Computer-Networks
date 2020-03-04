@@ -80,7 +80,7 @@ float Q;
    void localroute();
    void Route_flood();
    void checkdest(table* tmptable);
-   bool checkMin(pack* Package);
+   bool checkMin(table* tmptable);
   // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
    
@@ -359,7 +359,7 @@ for(j =0; j < 20;j++){
    }
 }
 } 
-void localroute(){
+void localroute(){ //Populates local route with nodes
           Neighbor node;
 	uint16_t i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
@@ -373,9 +373,10 @@ void localroute(){
    	
    }
    }
+   Route_flood();
 }
 
-      void Route_flood(){
+      void Route_flood(){ //Sends neigbors its local routeing table
      Neighbor node;
      table route[1];
         uint32_t* keys= call RoutingTable.getKeys();   
@@ -392,7 +393,7 @@ void localroute(){
     
    
    }
-   void inserttable(table* tmptable){
+   void inserttable(table* tmptable){ //adds the route to the local table
    uint16_t i=0;
 while(routingTable[i].Destination!=0){
 i++;
@@ -407,12 +408,32 @@ routingTable[i].Cost=tmptable[0].Cost+1;
    
    }
 
-void checkdest(table* tmptable){
+bool checkMin(table* tmptable){ //Will check if the cost is already the lowest.
+table route;
+route = call RoutingTable.get(tmptable[0].Destination);
+if(route.Cost != 0&& route.Cost > tmptable[0].Cost){
+return TRUE;
+}
+if(route.Cost == 0){
+return TRUE;
+}
+else{
+return FALSE;
+}
+}
+
+
+void checkdest(table* tmptable){ //Check if our destination is already in the local routing table
 
 uint16_t j=0,i=0; 
-
+if(checkMin(tmptable)){
 if(!call RoutingTable.contains(tmptable[i].Destination)&&tmptable[i].Destination!= TOS_NODE_ID){
 inserttable(tmptable);
+}
+}
+else{
+//Route_flood();
+}
 
 }
 
@@ -420,14 +441,6 @@ inserttable(tmptable);
 
 
 
-
-
-
-}
-
-bool checkMin(pack* Package){
-
-}
 
 
 
