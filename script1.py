@@ -9,7 +9,7 @@ s = TestSim();
 s.runTime(1);
    
     # Load the the layout of the network.
-s.loadTopo("long_line.topo");
+s.loadTopo("short.topo");
 
     # Add a noise model to all of the motes.
 s.loadNoise("no_noise.txt");
@@ -28,8 +28,11 @@ s.runTime(1);
 
 
 
-s.ping(1, 7, "hi");
+#s.ping(1, 7, "hi");
+#s.runTime(20);
+s.ping(1, 5, "hi");
 s.runTime(20);
+
 
 s.routeDMP(1);
 s.runTime(20);

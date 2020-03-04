@@ -73,9 +73,10 @@ float Q;
 //Project 2 implementations (functions)]
     uint16_t numRoutes =0;
  Route routingTable[128];
-  
+   	void Test();
     void printRouteTable();
    void localroute();
+  
   // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
    
@@ -393,7 +394,9 @@ uint16_t i;
 for(i=0; i < numNewRoutes; ++i){
 mergeRoute(&newRoute[i]);
 }
+
 }
+
 //-------------------------------------------------------end of project2 functions
 
    event void CommandHandler.printNeighbors(){ 
@@ -402,6 +405,7 @@ mergeRoute(&newRoute[i]);
 
    event void CommandHandler.printRouteTable(){
    printRouteTable();
+   
    }
 
    event void CommandHandler.printLinkState(){}
