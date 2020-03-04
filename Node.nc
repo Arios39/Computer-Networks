@@ -81,6 +81,7 @@ float Q;
    void localroute();
    void Route_flood();
    void checkdest(pack *Package);
+   bool checkMin(pack* Package);
   // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
    
@@ -401,8 +402,14 @@ void localroute(){
 void checkdest(pack* Package){
 Route route;
 if(call RoutingTable.contains(Package->dest)){
+	if(checkMin(Package)){
+	 route.Cost=Package->TTL+1;
+ route.Destination=Package->dest;
+ route.NextHop=Package->src;
+ }else{
 route = call RoutingTable.get(Package->dest);
 dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of \n",Package->dest, route.Cost);
+}
 }
  if(!call RoutingTable.contains(Package->dest)){
  route.Cost=Package->TTL+1;
@@ -412,8 +419,24 @@ call RoutingTable.insert(Package->dest,route);
     dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",Package->dest, route.Cost);
     Route_flood();
 }
-
 }
+
+bool checkMin(pack* Package){
+Route route;
+route = call RoutingTable.get(Package->dest);
+if(route.Cost>Package->TTL+1){
+return TRUE;
+}
+
+
+return FALSE;
+}
+
+
+
+
+
+
 
 
 //-------------------------------------------------------end of project2 functions
