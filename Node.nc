@@ -77,7 +77,7 @@ float Q;
    	void Test();
     void printRouteTable();
    void localroute();
-  
+   void Route_flood();
   // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
    
@@ -124,6 +124,10 @@ findneighbor();
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
           localroute();
+         // Route_flood();
+          if(myMsg->protocol==PROTOCOL_LINKEDLIST){
+          dbg(ROUTING_CHANNEL, "THE TABLE IS SENDING \n");
+          }
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
          
@@ -347,26 +351,35 @@ void localroute(){
    node=call NeighborHood.get(i); 
    if(node.node!=0){
    route.Cost=1;
-   route.Destination= TOS_NODE_ID;
+   route.Destination= node.node;
     call RoutingTable.insert(node.node,route);
     dbg(ROUTING_CHANNEL, "Local routing table inserted Node %d with a distance of 1\n",node.node);
    			
    }
+  
    }
+  // Route_flood();
 }
+
       void Route_flood(){
-     Neighbor node;
-	uint16_t i,size = call NeighborHood.size(); 
+     Neighbor node1;
+     Neighbor node2;
+     Route route;
+	uint16_t j,i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
-   node=call NeighborHood.get(i); 
-   if(node.node!=0){
-    dbg(ROUTING_CHANNEL, "Flooding local to : %d \n", node.node );
-   makePack(&sendPackage, Package->src, Package->dest, Package->TTL-1, PROTOCOL_PING, Package->seq, (uint8_t*) RoutingTable, sizeof( Package->payload));
-    call Sender.send(sendPackage, node.node);   			
+   node1=call NeighborHood.get(i); 
+   if(node1.node!=0){
+   		for(j =0; j < size;j++){
+   		node2=call NeighborHood.get(j);
+   	if(node2.node!=0){
+   	route = call RoutingTable.get(j);
+    dbg(ROUTING_CHANNEL, "Flooding local to : %d \n", node1.node );
+   makePack(&sendPackage, TOS_NODE_ID, route.Destination, 1, PROTOCOL_LINKEDLIST, 0,route.Cost, PACKET_MAX_PAYLOAD_SIZE);
+    call Sender.send(sendPackage, node1.node);   			
    }
    }
-    
-    
+    }
+    }
     
    
    }
