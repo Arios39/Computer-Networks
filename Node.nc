@@ -44,7 +44,7 @@ module Node{
 	uses interface Timer<TMilli> as neighbortimer;
    uses interface SimpleSend as Sender;
    
-   uses interface Hashmap<uint16_t> as RoutingTable;
+   uses interface Hashmap<Route> as RoutingTable;
    
 	uses interface List<Neighbor> as NeighborHood;
 	uses interface Hashmap<pack> as PacketCache;
@@ -338,7 +338,7 @@ dbg(ROUTING_CHANNEL, "Node %d has a hop distance to node %d of %d \n", TOS_NODE_
 }
 } 
 void localroute(){
-	Rotue route;
+	Route route;
      Neighbor node;
 	uint16_t i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
@@ -353,7 +353,7 @@ void localroute(){
    }
 }
 
-void mergeRoute(Route *route){ //update hte local nodes routing table based on new route
+/*void mergeRoute(Route *route){ //update hte local nodes routing table based on new route
 uint16_t i;
 for(i=0; i<numRoutes; ++i){
 	if (route ->Destination == routingTable[i].Destination){
@@ -397,7 +397,7 @@ for(i=0; i < numNewRoutes; ++i){
 mergeRoute(&newRoute[i]);
 }
 
-}
+}*/
 
 //-------------------------------------------------------end of project2 functions
 
