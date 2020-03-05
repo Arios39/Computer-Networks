@@ -75,7 +75,7 @@ float Q;
 //Project 2 implementations (functions)]
     uint16_t numRoutes =0;
  table routingTable[255]= {0};
-   	void Test();
+   	
    	void forwarding(pack* Package);
     void printRouteTable();
    void localroute();
@@ -435,25 +435,33 @@ if(call RoutingTable.contains(Package->dest)){
 table route;
 route = call RoutingTable.get(Package->dest);
 if(route.Cost!=1){
-dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost: \n",Package->src,Package->dest,Package->seq,route.NextHop);
+dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost:%d \n",Package->src,Package->dest,Package->seq,route.NextHop,route.Cost);
  makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
-    call Sender.send(sendPackage,route.NextHop);
+    call Sender.send(sendPackage,route.NextHop); //will send to next node
 }
 else{
 
-dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost: \n",Package->src,Package->dest,Package->seq,route.NextHop);
+dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost:%d \n",Package->src,Package->dest,Package->seq,route.NextHop,route.Cost);
  makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
-    call Sender.send(sendPackage,Package->dest);
+    call Sender.send(sendPackage,Package->dest); //will send to its dest
 }
 
 
 
 
 }
+//If not in the table send to closest node
+else{
+table route;
+route = call RoutingTable.get(Package->dest);
+if(route.Cost==1){
 
-
+dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost: \n",Package->src,Package->dest,Package->seq,route.NextHop);
+makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
+call Sender.send(sendPackage,route.NextHop);
 }
-
+}
+}
 //-------------------------------------------------------end of project2 functions
 
    event void CommandHandler.printNeighbors(){ 

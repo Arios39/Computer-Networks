@@ -40,8 +40,10 @@ s.routeDMP(2);
 s.runTime(20);
 s.routeDMP(3);
 s.runTime(20);
+s.routeDMP(4);
+s.runTime(20);
 
-s.ping(1, 8, "hi");
+s.ping(1, 4, "hi");
 s.runTime(20);
 
 
