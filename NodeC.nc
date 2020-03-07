@@ -24,7 +24,7 @@ implementation {
 	Node.neighbortimer -> neighbortimer;
     Node.Receive -> GeneralReceive;
 
-	components new HashmapC(uint16_t,20) as RoutingTableC;
+	components new HashmapC(Route,20) as RoutingTableC;
 	Node.RoutingTable -> RoutingTableC;
 	
 	

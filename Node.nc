@@ -29,7 +29,6 @@ typedef struct{ //Defines each entry in the routeing table
 uint16_t Destination;
 uint16_t NextHop;
 uint16_t Cost;
-uint16_t rTTL;
 }Route;
 
 
@@ -331,19 +330,22 @@ if(!call PacketCache.contains(Package->seq)){
   uint16_t size = call RoutingTable.size();
   uint16_t hop,i=0;
 for(i=0; i < size; i++){
- hop=call RoutingTable.get(i); 
+ // hop=call RoutingTable.get(i); 
 if (hop!=0){
 dbg(ROUTING_CHANNEL, "Node %d has a hop distance to node %d of %d \n", TOS_NODE_ID,i,hop);
 }
 }
 } 
 void localroute(){
+	Rotue route;
      Neighbor node;
 	uint16_t i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
    if(node.node!=0){
-    call RoutingTable.insert(node.node,1);
+   route.Cost=1;
+   route.Destination= TOS_NODE_ID;
+    call RoutingTable.insert(node.node,route);
     dbg(ROUTING_CHANNEL, "Local routing table inserted Node %d with a distance of 1\n",node.node);
    			
    }
