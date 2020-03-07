@@ -95,7 +95,6 @@ float Q;
 //calls nieghbor discovery discover 
 //Neighbor neighbor;
 findneighbor();
-
        
    }
    
@@ -123,10 +122,9 @@ findneighbor();
 
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
-          localroute();
          // Route_flood();
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
-          dbg(ROUTING_CHANNEL, "THE TABLE IS SENDING \n");
+          dbg(ROUTING_CHANNEL, "THE TABLE IS received \n");
           }
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
@@ -193,7 +191,7 @@ Neighbor node;
 uint16_t i,size = call NeighborHood.size();   
    for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
-   if(node.node==neighbor){
+   if(node.node==neighbor){   
         // dbg(GENERAL_CHANNEL, "We have already met dude im node: %d \n", neighbor );
    return TRUE;
    }
@@ -212,7 +210,7 @@ neighbor.node = Package->src;
  call NeighborHood.pushback(neighbor);
  		PacketArr++;
    		PacketSent;
-   		
+   	  localroute();	
    		 
     Q=((PacketSent)/((float)PacketArr));
    		 
@@ -222,6 +220,7 @@ neighbor.node = Package->src;
    // dbg(GENERAL_CHANNEL, "Havent met you %d\n", Package->src);
  
 }
+Route_flood();
 }
 //---------------------------------------------------------------------------------
 
@@ -230,8 +229,7 @@ neighbor.node = Package->src;
      void findneighbor(){
      Neighbor neighbor;
      char * msg;
-    msg = "Help";
-    
+    msg = "Help";    
     dbg(NEIGHBOR_CHANNEL, "Sending help signal to look for neighbor! \n");
       makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 2, PROTOCOL_PINGREPLY, 0, (uint8_t *)msg, (uint8_t)sizeof(msg));
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
@@ -358,7 +356,7 @@ void localroute(){
    }
   
    }
-  // Route_flood();
+     // Route_flood();
 }
 
       void Route_flood(){
@@ -374,7 +372,7 @@ void localroute(){
    	if(node2.node!=0){
    	route = call RoutingTable.get(j);
     dbg(ROUTING_CHANNEL, "Flooding local to : %d \n", node1.node );
-   makePack(&sendPackage, TOS_NODE_ID, route.Destination, 1, PROTOCOL_LINKEDLIST, 0,route.Cost, PACKET_MAX_PAYLOAD_SIZE);
+  makePack(&sendPackage, TOS_NODE_ID, route.Destination, 1, PROTOCOL_LINKEDLIST, route.Cost,0, 0);
     call Sender.send(sendPackage, node1.node);   			
    }
    }
