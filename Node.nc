@@ -19,6 +19,7 @@
 typedef struct{
 
 uint16_t node;
+
 //uint16_t Q;
 //uint16_t PacketSent;
 //uint16_t PacketArr;
@@ -51,6 +52,7 @@ module Node{
 	//uses interface Quality<Qual> as Quality List
    uses interface CommandHandler;
 }
+
 
 implementation{
    pack sendPackage;
@@ -352,6 +354,24 @@ void localroute(){
    }
    }
 }
+      void Route_flood(){
+     Neighbor node;
+	uint16_t i,size = call NeighborHood.size(); 
+       for(i =0; i < size;i++){
+   node=call NeighborHood.get(i); 
+   if(node.node!=0){
+    dbg(ROUTING_CHANNEL, "Flooding local to : %d \n", node.node );
+   makePack(&sendPackage, Package->src, Package->dest, Package->TTL-1, PROTOCOL_PING, Package->seq, (uint8_t*) RoutingTable, sizeof( Package->payload));
+    call Sender.send(sendPackage, node.node);   			
+   }
+   }
+    
+    
+    
+   
+   }
+
+
 
 /*void mergeRoute(Route *route){ //update hte local nodes routing table based on new route
 uint16_t i;
