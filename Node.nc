@@ -137,6 +137,7 @@ findneighbor();
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
           
           dbg(ROUTING_CHANNEL, "Received a table from node: %d THE TABLE IS giving my node: %d  with a cost of %d\n",myMsg->src, myMsg->dest, myMsg->TTL);
+          checkdest(myMsg);
           }
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
@@ -403,10 +404,10 @@ if(call RoutingTable.contains(Package->dest)){
 }
 else{
 
+call RoutingTable.insert(Package->dest,route);
 route.Cost=Package->TTL+1;
     dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",route.Destination, route.Cost);
-call RoutingTable.insert(Package->dest,route);
-
+    Route_flood();
 }
 
 }
