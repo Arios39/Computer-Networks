@@ -43,6 +43,8 @@ module Node{
    uses interface SplitControl as AMControl;
    uses interface Receive;
 	uses interface Timer<TMilli> as neighbortimer;
+	uses interface Timer<TMilli> as routingtimer;
+	
    uses interface SimpleSend as Sender;
    
    uses interface Hashmap<Route> as RoutingTable;
@@ -87,6 +89,8 @@ float Q;
       // the timmer will have a oneshot of (250)
       
    call neighbortimer.startOneShot(250);
+      call routingtimer.startOneShot(500);
+   
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
    
@@ -96,6 +100,12 @@ float Q;
 //Neighbor neighbor;
 findneighbor();
        
+   }
+      event void routingtimer.fired(){
+//calls nieghbor discovery discover 
+//Neighbor neighbor;
+
+       Route_flood();
    }
    
    
@@ -124,7 +134,8 @@ findneighbor();
          pack* myMsg=(pack*) payload;
          // Route_flood();
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
-          dbg(ROUTING_CHANNEL, "THE TABLE IS received \n");
+          
+          dbg(ROUTING_CHANNEL, "Received a table from node: %d THE TABLE IS giving my node: %d  with a cost of %d\n",myMsg->src, myMsg->dest, myMsg->TTL);
           }
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
@@ -175,6 +186,7 @@ findneighbor();
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
+   
       dbg(GENERAL_CHANNEL, "PING EVENT destination %d\n", destination );
       seqNum++;
       makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
@@ -205,6 +217,7 @@ return FALSE;
 void ListHandler(pack* Package){
 Neighbor neighbor;
 if (!met(Package->src)){
+localroute();
 dbg(NEIGHBOR_CHANNEL, "Node %d was added to %d's Neighborhood\n", Package->src, TOS_NODE_ID);
 neighbor.node = Package->src;
  call NeighborHood.pushback(neighbor);
@@ -220,7 +233,6 @@ neighbor.node = Package->src;
    // dbg(GENERAL_CHANNEL, "Havent met you %d\n", Package->src);
  
 }
-Route_flood();
 }
 //---------------------------------------------------------------------------------
 
@@ -235,7 +247,6 @@ Route_flood();
        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
       // neighbor.PacketSent++;
       PacketSent++;
-      dbg(NEIGHBOR_CHANNEL, "The number of Packets sent is %d\n",PacketSent); //QUALITY TEST
 
        
    }
@@ -347,32 +358,32 @@ void localroute(){
 	uint16_t i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
-   if(node.node!=0){
+   if(node.node!=0&&!call RoutingTable.contains(node.node)){
    route.Cost=1;
    route.Destination= node.node;
     call RoutingTable.insert(node.node,route);
-    dbg(ROUTING_CHANNEL, "Local routing table inserted Node %d with a distance of 1\n",node.node);
+    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of 1\n",node.node);
    			
    }
   
    }
-     // Route_flood();
 }
 
       void Route_flood(){
+       uint8_t* payload;
      Neighbor node1;
      Neighbor node2;
      Route route;
-	uint16_t j,i,size = call NeighborHood.size(); 
+	uint16_t j,i,size2,size = call NeighborHood.size(); 
+	size2=call RoutingTable.size();
        for(i =0; i < size;i++){
    node1=call NeighborHood.get(i); 
    if(node1.node!=0){
-   		for(j =0; j < size;j++){
-   		node2=call NeighborHood.get(j);
-   	if(node2.node!=0){
-   	route = call RoutingTable.get(j);
-    dbg(ROUTING_CHANNEL, "Flooding local to : %d \n", node1.node );
-  makePack(&sendPackage, TOS_NODE_ID, route.Destination, 1, PROTOCOL_LINKEDLIST, route.Cost,0, 0);
+   		for(j =0; j < 20;j++){
+   		route=call RoutingTable.get(j);
+   	if(route.Cost!=0){
+    dbg(ROUTING_CHANNEL, "Flooding local routing table to: %d \n", node1.node);
+  makePack(&sendPackage, TOS_NODE_ID, route.Destination, route.Cost, PROTOCOL_LINKEDLIST, 0,0,0);
     call Sender.send(sendPackage, node1.node);   			
    }
    }
