@@ -26,13 +26,12 @@ uint16_t node;
 } Neighbor;
 // neighbor struct that will hold a node and the quality of the node connection
 
-typedef struct{ //Defines each entry in the routeing table 
-uint16_t Destination;
-uint16_t NextHop;
-uint16_t Cost;
-}Route;
 
-
+typedef nx_struct table{ //Defines each entry in the routeing table 
+nx_uint8_t Destination;
+nx_uint8_t NextHop;
+nx_uint8_t Cost;
+}table;
 
 
 
@@ -47,7 +46,7 @@ module Node{
 	
    uses interface SimpleSend as Sender;
    
-   uses interface Hashmap<Route> as RoutingTable;
+   uses interface Hashmap<table> as RoutingTable;
    
 	uses interface List<Neighbor> as NeighborHood;
 	uses interface Hashmap<pack> as PacketCache;
@@ -75,12 +74,12 @@ float Q;
    
 //Project 2 implementations (functions)]
     uint16_t numRoutes =0;
- Route routingTable[128];
+ table routingTable[255]= {0};
    	void Test();
     void printRouteTable();
    void localroute();
    void Route_flood();
-   void checkdest(pack *Package);
+   void checkdest(table* tmptable);
    bool checkMin(pack* Package);
   // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
@@ -91,7 +90,7 @@ float Q;
       // the timmer will have a oneshot of (250)
       
    call neighbortimer.startOneShot(250);
-      call routingtimer.startOneShot(1000);
+      call routingtimer.startOneShot(500);
    
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
@@ -128,17 +127,18 @@ findneighbor();
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    Neighbor neighbor;
-  
-  
+table route[1];  
     // dbg(GENERAL_CHANNEL, "Packet Received\n");
 
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
          // Route_flood();
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
-          if(myMsg->dest!= TOS_NODE_ID){
-          checkdest(myMsg);
-         }
+    memcpy(route, myMsg->payload, sizeof(route)*1);
+          	route[0].NextHop=myMsg->src;
+  //dbg(ROUTING_CHANNEL, "Received a routing Table from %d  \n",route[0].NextHop);
+       checkdest(route);
+
           
           }
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
@@ -338,7 +338,7 @@ if(!call PacketCache.contains(Package->seq)){
    for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
    if(node.node!=0){
-         dbg(GENERAL_CHANNEL, "Hello Neighbor im Node: %d \n", node.node );
+      //   dbg(GENERAL_CHANNEL, "Hello Neighbor im Node: %d \n", node.node );
    }
    
    }
@@ -348,7 +348,7 @@ if(!call PacketCache.contains(Package->seq)){
    //---------------------------------------------------Project2 functions
    void printRouteTable(){
    uint16_t j;
-   Route route;
+   table route;
 dbg(ROUTING_CHANNEL,"Routing Table:\n");
 dbg(ROUTING_CHANNEL,"Dest\t Hop\t Count\n");
 for(j =0; j < 20;j++){
@@ -360,81 +360,73 @@ for(j =0; j < 20;j++){
 }
 } 
 void localroute(){
-	Route route;
-     Neighbor node;
+          Neighbor node;
 	uint16_t i,size = call NeighborHood.size(); 
        for(i =0; i < size;i++){
    node=call NeighborHood.get(i); 
    if(node.node!=0&&!call RoutingTable.contains(node.node)){
-   route.Cost=1;
-   route.Destination= node.node;
-   route.NextHop = TOS_NODE_ID;
-    call RoutingTable.insert(node.node,route);
-    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of 1\n",node.node);
-   			
+   routingTable[i].Cost=1;
+   routingTable[i].Destination= node.node;
+   routingTable[i].NextHop = TOS_NODE_ID;
+   call RoutingTable.insert(routingTable[i].Destination,routingTable[i]);
+  //dbg(ROUTING_CHANNEL, "Node %d was added at location %d\n",routingTable[i].Destination,i);
+   	
    }
-  
    }
 }
 
       void Route_flood(){
-       uint8_t* payload;
-     Neighbor node1;
-     Neighbor node2;
-     Route route;
-	uint16_t j,i,size2,size = call NeighborHood.size(); 
-	size2=call RoutingTable.size();
-       for(i =0; i < size;i++){
-   node1=call NeighborHood.get(i); 
-   if(node1.node!=0){
-   		for(j =0; j < 100;j++){
-   		route=call RoutingTable.get(j);
-   	if(route.Cost!=0){
-  //  dbg(ROUTING_CHANNEL, "Flooding local routing table to: %d \n", node1.node);
-  makePack(&sendPackage, TOS_NODE_ID, route.Destination, route.Cost, PROTOCOL_LINKEDLIST, 0,0,0);
-    call Sender.send(sendPackage, node1.node);   			
-   }
-   }
-    }
-    }
+     Neighbor node;
+     table route[1];
+        uint32_t* keys= call RoutingTable.getKeys();   
+	uint16_t j=0,i,size = call NeighborHood.size(); 
+  			
+  			 while(keys[j]!=0){
+  			 route[0] = call RoutingTable.get(keys[j]);
+  		//dbg(ROUTING_CHANNEL, "sending my routing Table to: %d with route to get to node %d\n", node.node, route[0].Destination);
+ 			 makePack(&sendPackage, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_LINKEDLIST, 0,(uint8_t*)route ,sizeof(table)*1);
+    		call Sender.send(sendPackage, AM_BROADCAST_ADDR);   
+    		j++;
+  			  }
+    			
     
    
    }
+   void inserttable(table* tmptable){
+   uint16_t i=0;
+while(routingTable[i].Destination!=0){
+i++;
 
-void checkdest(pack* Package){
-Route route;
-if(call RoutingTable.contains(Package->dest)){
-	if(checkMin(Package)){
-route.Cost=Package->TTL+1;
- route.Destination=Package->dest;
- route.NextHop=Package->src;
-call RoutingTable.insert(Package->dest,route);
-    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",Package->dest, route.Cost);
-    Route_flood();
- }else{
-route = call RoutingTable.get(Package->dest);
-//dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of %d\n",Package->dest, route.Cost);
 }
+routingTable[i].Destination=tmptable[0].Destination;
+routingTable[i].NextHop=tmptable[0].NextHop;
+routingTable[i].Cost=tmptable[0].Cost+1;
+   call RoutingTable.insert(tmptable[0].Destination,routingTable[i]);
+  Route_flood();
+   
+   
+   }
+
+void checkdest(table* tmptable){
+
+uint16_t j=0,i=0; 
+
+if(!call RoutingTable.contains(tmptable[i].Destination)&&tmptable[i].Destination!= TOS_NODE_ID){
+inserttable(tmptable);
+
 }
- if(!call RoutingTable.contains(Package->dest)){
- route.Cost=Package->TTL+1;
- route.Destination=Package->dest;
- route.NextHop=Package->src;
-call RoutingTable.insert(Package->dest,route);
-    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",Package->dest, route.Cost);
-    Route_flood();
-}
+
+
+
+
+
+
+
+
 }
 
 bool checkMin(pack* Package){
-Route route;
-route = call RoutingTable.get(Package->dest);
-if(route.Cost>Package->TTL+1){
-return TRUE;
-}
 
-
-return FALSE;
 }
 
 
@@ -451,7 +443,7 @@ return FALSE;
    }
 
    event void CommandHandler.printRouteTable(){
-   printRouteTable();
+  printRouteTable();
    
    }
 
