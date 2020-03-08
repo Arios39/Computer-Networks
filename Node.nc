@@ -137,7 +137,6 @@ findneighbor();
          // Route_flood();
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
           if(myMsg->dest!= TOS_NODE_ID){
-dbg(ROUTING_CHANNEL, "Received a table from node: %d THE TABLE IS giving my node: %d  with a cost of %d\n",myMsg->src, myMsg->dest, myMsg->TTL);
           checkdest(myMsg);
          }
           
@@ -193,9 +192,9 @@ dbg(ROUTING_CHANNEL, "Received a table from node: %d THE TABLE IS giving my node
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
    
       dbg(GENERAL_CHANNEL, "PING EVENT destination %d\n", destination );
-      seqNum++;
-      makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
-      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+     // seqNum++;
+     // makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
+    //  call Sender.send(sendPackage, AM_BROADCAST_ADDR);
       
    }
 
@@ -388,7 +387,7 @@ void localroute(){
    		for(j =0; j < 20;j++){
    		route=call RoutingTable.get(j);
    	if(route.Cost!=0){
-    dbg(ROUTING_CHANNEL, "Flooding local routing table to: %d \n", node1.node);
+  //  dbg(ROUTING_CHANNEL, "Flooding local routing table to: %d \n", node1.node);
   makePack(&sendPackage, TOS_NODE_ID, route.Destination, route.Cost, PROTOCOL_LINKEDLIST, 0,0,0);
     call Sender.send(sendPackage, node1.node);   			
    }
@@ -403,12 +402,15 @@ void checkdest(pack* Package){
 Route route;
 if(call RoutingTable.contains(Package->dest)){
 	if(checkMin(Package)){
-	 route.Cost=Package->TTL+1;
+route.Cost=Package->TTL+1;
  route.Destination=Package->dest;
  route.NextHop=Package->src;
+call RoutingTable.insert(Package->dest,route);
+    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",Package->dest, route.Cost);
+    Route_flood();
  }else{
 route = call RoutingTable.get(Package->dest);
-dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of \n",Package->dest, route.Cost);
+//dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of %d\n",Package->dest, route.Cost);
 }
 }
  if(!call RoutingTable.contains(Package->dest)){
