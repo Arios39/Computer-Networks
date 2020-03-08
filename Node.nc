@@ -80,6 +80,7 @@ float Q;
     void printRouteTable();
    void localroute();
    void Route_flood();
+   void checkdest(pack *Package);
   // void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes);
 // end of Project 2 implementations (functions)
    
@@ -393,7 +394,22 @@ void localroute(){
    
    }
 
+void checkdest(pack* Package){
+Route route;
+route.Destination = Package->src;
+route.Cost =Package->TTL;
+if(call RoutingTable.contains(Package->dest)){
 
+}
+else{
+
+route.Cost=Package->TTL+1;
+    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",route.Destination, route.Cost);
+call RoutingTable.insert(Package->dest,route);
+
+}
+
+}
 
 /*void mergeRoute(Route *route){ //update hte local nodes routing table based on new route
 uint16_t i;
