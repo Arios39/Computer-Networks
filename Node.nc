@@ -135,9 +135,11 @@ findneighbor();
          pack* myMsg=(pack*) payload;
          // Route_flood();
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
-          
-          dbg(ROUTING_CHANNEL, "Received a table from node: %d THE TABLE IS giving my node: %d  with a cost of %d\n",myMsg->src, myMsg->dest, myMsg->TTL);
+          if(myMsg->dest!= TOS_NODE_ID){
+dbg(ROUTING_CHANNEL, "Received a table from node: %d THE TABLE IS giving my node: %d  with a cost of %d\n",myMsg->src, myMsg->dest, myMsg->TTL);
           checkdest(myMsg);
+         }
+          
           }
          if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
@@ -364,7 +366,7 @@ void localroute(){
    route.Cost=1;
    route.Destination= node.node;
     call RoutingTable.insert(node.node,route);
-    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of 1\n",node.node);
+   // dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of 1\n",node.node);
    			
    }
   
@@ -397,16 +399,14 @@ void localroute(){
 
 void checkdest(pack* Package){
 Route route;
-route.Destination = Package->src;
-route.Cost =Package->TTL;
 if(call RoutingTable.contains(Package->dest)){
-
+dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of ---\n",Package->dest);
 }
-else{
-
+ if(!call RoutingTable.contains(Package->dest)){
+ route.Cost=Package->TTL+1;
+ route.Destination=Package->dest;
 call RoutingTable.insert(Package->dest,route);
-route.Cost=Package->TTL+1;
-    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",route.Destination, route.Cost);
+    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",Package->dest, route.Cost);
     Route_flood();
 }
 
