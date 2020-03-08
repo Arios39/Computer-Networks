@@ -91,7 +91,7 @@ float Q;
       // the timmer will have a oneshot of (250)
       
    call neighbortimer.startOneShot(250);
-      call routingtimer.startOneShot(500);
+      call routingtimer.startOneShot(1000);
    
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
@@ -347,13 +347,16 @@ if(!call PacketCache.contains(Package->seq)){
    
    //---------------------------------------------------Project2 functions
    void printRouteTable(){
-  uint16_t size = call RoutingTable.size();
-  uint16_t hop,i=0;
-for(i=0; i < size; i++){
- // hop=call RoutingTable.get(i); 
-if (hop!=0){
-dbg(ROUTING_CHANNEL, "Node %d has a hop distance to node %d of %d \n", TOS_NODE_ID,i,hop);
-}
+   uint16_t j;
+   Route route;
+dbg(ROUTING_CHANNEL,"Routing Table:\n");
+dbg(ROUTING_CHANNEL,"Dest\t Hop\t Count\n");
+for(j =0; j < 20;j++){
+   		route=call RoutingTable.get(j);
+   	if(route.Cost!=0){
+		dbg(ROUTING_CHANNEL,"%d\t\t %d\t %d\n", route.Destination, route.NextHop, route.Cost);
+		
+   }
 }
 } 
 void localroute(){
@@ -384,7 +387,7 @@ void localroute(){
        for(i =0; i < size;i++){
    node1=call NeighborHood.get(i); 
    if(node1.node!=0){
-   		for(j =0; j < 20;j++){
+   		for(j =0; j < 100;j++){
    		route=call RoutingTable.get(j);
    	if(route.Cost!=0){
   //  dbg(ROUTING_CHANNEL, "Flooding local routing table to: %d \n", node1.node);
