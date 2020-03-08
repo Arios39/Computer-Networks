@@ -365,8 +365,9 @@ void localroute(){
    if(node.node!=0&&!call RoutingTable.contains(node.node)){
    route.Cost=1;
    route.Destination= node.node;
+   route.NextHop = TOS_NODE_ID;
     call RoutingTable.insert(node.node,route);
-   // dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of 1\n",node.node);
+    dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of 1\n",node.node);
    			
    }
   
@@ -400,11 +401,13 @@ void localroute(){
 void checkdest(pack* Package){
 Route route;
 if(call RoutingTable.contains(Package->dest)){
-dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of ---\n",Package->dest);
+route = call RoutingTable.get(Package->dest);
+dbg(ROUTING_CHANNEL, "Node %d is already in table in my Routing Table with a cost of \n",Package->dest, route.Cost);
 }
  if(!call RoutingTable.contains(Package->dest)){
  route.Cost=Package->TTL+1;
  route.Destination=Package->dest;
+ route.NextHop=Package->src;
 call RoutingTable.insert(Package->dest,route);
     dbg(ROUTING_CHANNEL, "Node %d was added to my Routing Table with a cost of %d\n",Package->dest, route.Cost);
     Route_flood();
@@ -412,51 +415,6 @@ call RoutingTable.insert(Package->dest,route);
 
 }
 
-/*void mergeRoute(Route *route){ //update hte local nodes routing table based on new route
-uint16_t i;
-for(i=0; i<numRoutes; ++i){
-	if (route ->Destination == routingTable[i].Destination){
-		if(route->Cost+1 < routingTable[i].Cost){
-			dbg(ROUTING_CHANNEL, "Found Better Route");
-			break;
-		
-		} else if (route -> NextHop == routingTable[i].NextHop){
-		dbg(ROUTING_CHANNEL, "Current Next hop has been changed");
-		break;
-		}
-		else{
-		dbg(ROUTING_CHANNEL, "ignore route");
-		return;
-		}
-}
-
-}
-if(i == numRoutes){
-	dbg(ROUTING_CHANNEL, "This is a new route");
-		if(numRoutes < 120){
-		++numRoutes;
-	} else{
-	dbg(ROUTING_CHANNEL, "Cant fill this route in table");
-	return;
-}
-
-}
-routingTable[i] = *route;
-//reset TTL
-routingTable[i].rTTL = 100;
-//account the hop to get to next node
-++routingTable[i].Cost;
-}
-
-
-
-void UpdateRoutingTable(Route *newRoute, uint16_t numNewRoutes){
-uint16_t i;
-for(i=0; i < numNewRoutes; ++i){
-mergeRoute(&newRoute[i]);
-}
-
-}*/
 
 //-------------------------------------------------------end of project2 functions
 
