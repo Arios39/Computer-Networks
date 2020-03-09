@@ -76,6 +76,7 @@ float Q;
     uint16_t numRoutes =0;
  table routingTable[255]= {0};
    	void Test();
+   	void forwarding(pack* Package);
     void printRouteTable();
    void localroute();
    void Route_flood();
@@ -90,7 +91,7 @@ float Q;
       // the timmer will have a oneshot of (250)
       
    call neighbortimer.startOneShot(250);
-      call routingtimer.startOneShot(500);
+      call routingtimer.startOneShot(250);
    
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
@@ -136,47 +137,38 @@ table route[1];
           if(myMsg->protocol==PROTOCOL_LINKEDLIST){
     memcpy(route, myMsg->payload, sizeof(route)*1);
           	route[0].NextHop=myMsg->src;
-  //dbg(ROUTING_CHANNEL, "Received a routing Table from %d  \n",route[0].NextHop);
        checkdest(route);
-
-          
           }
-         if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
+          
+      if(myMsg->TTL==0&&myMsg->protocol==PROTOCOL_PING){
          // will drop packet when ttl expires packet will be dropped
-         
-         dbg(FLOODING_CHANNEL, "TTL has expired, packet from %d to %d will be dropped\n",myMsg->src, myMsg->dest);
+        // dbg(ROUTING_CHANNEL, "TTL has expired, packet from %d to %d will be dropped\n",myMsg->src, myMsg->dest);
          }
-         
-         if (myMsg->TTL!=0 && myMsg->dest!= TOS_NODE_ID){
-         seqNum = myMsg->seq;
-         
-         // will make all seq of node and packet nodes equal 
-         // This will help to keep track of what nodes have recived that packet in the hash
          
          if(myMsg->protocol==PROTOCOL_PING){
+         
            if( TOS_NODE_ID!=myMsg->dest){
-                    //If message is ping it will put packet in hash 
-                    
-         Packhash(myMsg);
+           forwarding(myMsg);         
+         //Packhash(myMsg);
+         }
+         else{
+   dbg(ROUTING_CHANNEL, "I have recived a message from %d and it says %s\n",myMsg->src, myMsg->payload);
+         
+         
          }
          
-      }      
+         
+      }   
+         
       if(myMsg->protocol==PROTOCOL_PINGREPLY){  
           // if ping reply add nieghbor to neighbor list && will take care of nodes being added or dropped
            ListHandler(myMsg);
       }  
          
-         }
+         
          // This will take care of the dest node from reciving the deliverd packet again and again...
          
-         if(myMsg->dest == TOS_NODE_ID && !inthemap(myMsg)&&myMsg->protocol==PROTOCOL_PING){
-         seqNum = myMsg->seq;
-          dbg(FLOODING_CHANNEL, "I have recived a message from %d and it says %s\n",myMsg->src, myMsg->payload);
-   Packhash(myMsg);
-   			
-   			//neighbor.Q = (neighbor.PacketArr/neighbor.PacketSent);
-   		
-          }     
+       
      //-------------------------------------------endofneighbordiscovery 
          
          return msg;
@@ -192,8 +184,10 @@ table route[1];
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
    
       dbg(GENERAL_CHANNEL, "PING EVENT destination %d\n", destination );
+     
      // seqNum++;
-     // makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
+     makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
+         forwarding(&sendPackage);
     //  call Sender.send(sendPackage, AM_BROADCAST_ADDR);
       
    }
@@ -389,9 +383,7 @@ void localroute(){ //Populates local route with nodes
     		call Sender.send(sendPackage, AM_BROADCAST_ADDR);   
     		j++;
   			  }
-    			
-    
-   
+ 
    }
    void inserttable(table* tmptable){ //adds the route to the local table
    uint16_t i=0;
@@ -437,17 +429,30 @@ else{
 
 }
 
+void forwarding(pack* Package){
+
+if(call RoutingTable.contains(Package->dest)){
+table route;
+route = call RoutingTable.get(Package->dest);
+if(route.Cost!=1){
+dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost: \n",Package->src,Package->dest,Package->seq,route.NextHop);
+ makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
+    call Sender.send(sendPackage,route.NextHop);
+}
+else{
+
+dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost: \n",Package->src,Package->dest,Package->seq,route.NextHop);
+ makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
+    call Sender.send(sendPackage,Package->dest);
+}
 
 
 
 
+}
 
 
-
-
-
-
-
+}
 
 //-------------------------------------------------------end of project2 functions
 

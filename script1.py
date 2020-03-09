@@ -35,30 +35,14 @@ s.runTime(100);
 
 
 s.routeDMP(1);
-s.runTime(100);
-
+s.runTime(20);
 s.routeDMP(2);
-s.runTime(100);
+s.runTime(20);
 s.routeDMP(3);
-s.runTime(100);
-s.routeDMP(4);
-s.runTime(100);
-s.routeDMP(5);
-s.runTime(100);
-s.routeDMP(6);
-s.runTime(100);
-s.routeDMP(7);
-s.runTime(100);
-s.routeDMP(8);
-s.runTime(100);
-s.routeDMP(9);
-s.runTime(100);
-s.routeDMP(10);
-s.runTime(100);
-s.routeDMP(11);
-s.runTime(100);
+s.runTime(20);
 
-
+s.ping(1, 8, "hi");
+s.runTime(20);
 
 
 
