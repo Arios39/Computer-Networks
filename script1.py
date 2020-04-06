@@ -22,9 +22,9 @@ s.bootAll();
 s.addChannel(s.GENERAL_CHANNEL);
 #s.addChannel(s.NEIGHBOR_CHANNEL);
 #s.addChannel(s.FLOODING_CHANNEL);
-s.addChannel(s.ROUTING_CHANNEL);
+s.addChannel(s.TRANSPORT_CHANNEL);
     # After sending a ping, simulate a little to prevent collision.
-s.runTime(100);
+s.runTime(10);
 
 
 
@@ -34,17 +34,9 @@ s.runTime(100);
 #s.runTime(50);
 
 
-s.routeDMP(1);
-s.runTime(20);
-s.routeDMP(2);
-s.runTime(20);
-s.routeDMP(3);
-s.runTime(20);
-s.routeDMP(4);
-s.runTime(20);
 
-s.ping(1, 4, "hi");
-s.runTime(20);
+s.testServer(2,"4");
+s.runTime(5);
 
 
 

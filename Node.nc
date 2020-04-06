@@ -477,7 +477,10 @@ call Sender.send(sendPackage,route.NextHop);
 
    event void CommandHandler.printDistanceVector(){}
 
-   event void CommandHandler.setTestServer(){}
+   event void CommandHandler.setTestServer(uint8_t * port){
+   dbg(TRANSPORT_CHANNEL," Binding to port..... %s\n", port);
+   
+   }
 
    event void CommandHandler.setTestClient(){}
 
