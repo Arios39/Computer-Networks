@@ -44,4 +44,10 @@ implementation {
 
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;
+    
+    
+        components TransportC;
+    Node.Transport -> TransportC;
+    
+    
 }

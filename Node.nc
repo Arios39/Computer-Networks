@@ -12,6 +12,8 @@
 #include "includes/CommandMsg.h"
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
+#include "includes/TCP_packet.h"
+
 //#define MAX_ROUTES 128;
 
 
@@ -47,6 +49,7 @@ module Node{
    uses interface SimpleSend as Sender;
    
    uses interface Hashmap<table> as RoutingTable;
+      uses interface Transport;
    
 	uses interface List<Neighbor> as NeighborHood;
 	uses interface Hashmap<pack> as PacketCache;
