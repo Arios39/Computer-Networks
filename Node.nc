@@ -13,6 +13,8 @@
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
 #include "includes/TCP_packet.h"
+#include "includes/socket.h"
+
 
 //#define MAX_ROUTES 128;
 
@@ -480,8 +482,21 @@ call Sender.send(sendPackage,route.NextHop);
 
    event void CommandHandler.printDistanceVector(){}
 
-   event void CommandHandler.setTestServer(uint8_t * port){
-   dbg(TRANSPORT_CHANNEL," Binding to port..... %s\n", port);
+   event void CommandHandler.setTestServer(uint8_t port){
+   socket_addr_t socket;
+   socket_t fd = call Transport.socket();
+   socket.addr = TOS_NODE_ID;
+   socket.port = port;
+   
+       if(call Transport.bind(fd, &socket) == SUCCESS){
+       dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
+     }
+     
+        if(call Transport.listen(fd) == SUCCESS) {
+       dbg(TRANSPORT_CHANNEL, "Fire timer\n");
+     }
+
+//call timmer
    
    }
 
