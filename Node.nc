@@ -47,6 +47,7 @@ module Node{
    uses interface Receive;
 	uses interface Timer<TMilli> as neighbortimer;
 	uses interface Timer<TMilli> as routingtimer;
+		uses interface Timer<TMilli> as TCPtimer;
 	
    uses interface SimpleSend as Sender;
    
@@ -469,6 +470,17 @@ call Sender.send(sendPackage,route.NextHop);
 }
 //-------------------------------------------------------end of project2 functions
 
+//------------------------------------------------------------------Project 3 functions
+
+event void TCPtimer.fired(){
+//TCP Timer 
+       dbg(TRANSPORT_CHANNEL, "TCP timer linked\n");
+
+   }
+
+//-------------------------------------------------------------------End of project 3
+
+
    event void CommandHandler.printNeighbors(){ 
    printNeighbors();  
    }
@@ -494,6 +506,8 @@ call Sender.send(sendPackage,route.NextHop);
      
         if(call Transport.listen(fd) == SUCCESS) {
        dbg(TRANSPORT_CHANNEL, "Fire timer\n");
+                call TCPtimer.startOneShot(6000);
+       
      }
 
 //call timmer

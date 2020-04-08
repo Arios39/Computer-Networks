@@ -38,7 +38,8 @@ s.runTime(10);
 s.testServer(2,"4");
 s.runTime(5);
 
-
+s.testServer(2,"1");
+s.runTime(5);
 
 
 

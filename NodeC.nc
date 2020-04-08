@@ -21,9 +21,12 @@ implementation {
     components new AMReceiverC(AM_PACK) as GeneralReceive;
 	components new TimerMilliC() as neighbortimer;
 	components new TimerMilliC() as routingtimer;
+	components new TimerMilliC() as TCPtimer;
+	
     Node -> MainC.Boot;
     Node.routingtimer->routingtimer;
 	Node.neighbortimer -> neighbortimer;
+	Node.TCPtimer -> TCPtimer;
     Node.Receive -> GeneralReceive;
 
 	components new HashmapC(table,255) as RoutingTableC;

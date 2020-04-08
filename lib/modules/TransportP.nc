@@ -18,8 +18,7 @@ implementation{
 command socket_t Transport.socket(){
     socket_t fd;
    socket_store_t socket;
-    if(call SocketsList.size() < MAX_NUM_OF_SOCKETS)
-    {
+    if(call SocketsList.size() < MAX_NUM_OF_SOCKETS){
       socket.fd = call SocketsList.size();
           //  dbg(TRANSPORT_CHANNEL, "Socket id %d\n", socket.fd);
       fd = call SocketsList.size();
