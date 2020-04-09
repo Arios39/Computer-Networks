@@ -12,9 +12,9 @@ implementation{
     components TransportP;
     Transport = TransportP;
 
+components new HashmapC(socket_store_t,10) as SocketsTableC;
+TransportP.SocketsTable -> SocketsTableC;	
 
 
-    components new ListC(socket_store_t, 10) as SocketsListC;
-    TransportP.SocketsList -> SocketsListC;
 
 }

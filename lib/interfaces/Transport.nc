@@ -40,7 +40,8 @@ interface Transport{
     * @return error_t - SUCCESS if you were able to bind this socket, FAIL
     *       if you were unable to bind.
     */
-  command error_t bind(socket_t fd, socket_addr_t *addr);
+ command error_t bind(socket_t fd, socket_addr_t *addr);
+  command error_t bindS(socket_t fd, socket_addr_t *addr);
 
    /**
     * Checks to see if there are socket connections to connect to and
@@ -54,7 +55,7 @@ interface Transport{
     *    a destination associated with the destination address and port.
     *    if not return a null socket.
     */
- //  command socket_t accept(socket_t fd);
+  //command socket_t accept(socket_t fd);
 
    /**
     * Write to the socket from a buffer. This data will eventually be
@@ -145,5 +146,5 @@ interface Transport{
     * @return error_t - returns SUCCESS if you are able change the state 
     *   to listen else FAIL.
     */
-   command error_t listen(socket_t fd);
+  command error_t listen(socket_t fd);
 }

@@ -10,7 +10,7 @@ module TransportP
 {
    provides interface Transport;
 
-    uses interface List<socket_store_t> as SocketsList;
+    uses interface Hashmap<socket_store_t> as SocketsTable;
  
 }
 implementation{
@@ -18,11 +18,20 @@ implementation{
 command socket_t Transport.socket(){
     socket_t fd;
    socket_store_t socket;
-    if(call SocketsList.size() < MAX_NUM_OF_SOCKETS){
-      socket.fd = call SocketsList.size();
-          //  dbg(TRANSPORT_CHANNEL, "Socket id %d\n", socket.fd);
-      fd = call SocketsList.size();
-      call SocketsList.pushback(socket);
+    uint16_t size;
+if(call SocketsTable.size()<= MAX_NUM_OF_SOCKETS){
+
+fd = call SocketsTable.size()+1;
+
+
+socket.fd=fd;
+
+call SocketsTable.insert(fd, socket);
+
+ dbg(TRANSPORT_CHANNEL,"fd %d .\n", fd);
+
+
+      
     }
     else
     {
@@ -45,47 +54,83 @@ command socket_t Transport.socket(){
     *       if you were unable to bind.
     */
   
-    command error_t Transport.bind(socket_t fd, socket_addr_t *addr){
+   
+    command error_t Transport.bindS(socket_t fd, socket_addr_t *addr){
    socket_store_t temp;
    socket_addr_t temp_addy;
    error_t e;
    bool suc = FALSE;
-   uint16_t size = call SocketsList.size();
-   uint8_t i =0;
-   if(call SocketsList.isEmpty()){
+   uint16_t size = call SocketsTable.size();
+   uint8_t i =1;
+   if(call SocketsTable.isEmpty()){
    return e = FAIL;
    
    }
    
-   for(i;i<size;i++){
+   for(i;i<=size;i++){
    
-   temp = call SocketsList.get(i);
+   temp = call SocketsTable.get(i);
+   call SocketsTable.remove(i);
+   if(temp.fd ==fd&&!suc){
+   suc = TRUE;
+   temp_addy.port = addr->port;
+      temp_addy.addr = addr->addr;
+      temp.src=temp_addy;
+   }
+    call SocketsTable.insert(i, temp);
+   }
+       //  dbg(TRANSPORT_CHANNEL, "size of table %d \n", temp.fd);
+   
+      if(suc) return e = SUCCESS;
+    else      return e = FAIL;
+  }
+  
+ //-------------------------------------------------------------------------------------------------------
+  
+      command error_t Transport.bind(socket_t fd, socket_addr_t *addr){
+   socket_store_t temp;
+   socket_addr_t temp_addy;
+   error_t e;
+   bool suc = FALSE;
+   uint16_t size = call SocketsTable.size();
+   uint8_t i =1;
+   if(call SocketsTable.isEmpty()){
+   return e = FAIL;
+   
+   }
+   
+   for(i;i<=size;i++){
+   
+   temp = call SocketsTable.get(i);
+   call SocketsTable.remove(i);
    if(temp.fd ==fd&&!suc){
    suc = TRUE;
    temp_addy.port = addr->port;
       temp_addy.addr = addr->addr;
       temp.dest=temp_addy;
    }
+    call SocketsTable.insert(i, temp);
    }
+   
       if(suc) return e = SUCCESS;
     else      return e = FAIL;
   }
-  
-
+//------------------------------------------------------------------------------------------------------------------
 
   command error_t Transport.listen(socket_t fd){
     socket_store_t temp;
  error_t e;
-    uint16_t size = call SocketsList.size();
+    uint16_t size = call SocketsTable.size();
  bool suc = FALSE;
    uint8_t i =0;
-   if(call SocketsList.isEmpty()){
+   if(call SocketsTable.isEmpty()){
    return e = FAIL;
    
    }
-       for(i;i<size;i++){
+       for(i;i<=size;i++){
    
-   temp = call SocketsList.get(i);
+   temp = call SocketsTable.get(i);
+      call SocketsTable.remove(i);
    if(temp.fd ==fd&&!suc){
    suc = TRUE;
  temp.state =LISTEN;
@@ -93,7 +138,7 @@ command socket_t Transport.socket(){
  dbg(TRANSPORT_CHANNEL,"fd %d ..... Changed state to %d\n", fd, temp.state);
  }
  
- call SocketsList.pushback(temp);
+ call SocketsTable.insert(temp.fd,temp);
    }
    }
 
@@ -104,10 +149,6 @@ command socket_t Transport.socket(){
  
  
   }
-  
-  
-
-
 
 
 

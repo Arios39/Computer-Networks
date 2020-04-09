@@ -494,17 +494,16 @@ event void TCPtimer.fired(){
 
    event void CommandHandler.printDistanceVector(){}
 
-   event void CommandHandler.setTestServer(uint8_t port){
+   event void CommandHandler.setTestServer(uint16_t port){
    socket_addr_t socket;
    socket_t fd = call Transport.socket();
+ dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
    socket.addr = TOS_NODE_ID;
    socket.port = port;
-   
-       if(call Transport.bind(fd, &socket) == SUCCESS){
+        if(call Transport.bindS(fd, &socket) == SUCCESS){
        dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
      }
-     
-        if(call Transport.listen(fd) == SUCCESS) {
+   if(call Transport.listen(fd) == SUCCESS) {
        dbg(TRANSPORT_CHANNEL, "Fire timer\n");
                 call TCPtimer.startOneShot(6000);
        
@@ -514,7 +513,22 @@ event void TCPtimer.fired(){
    
    }
 
-   event void CommandHandler.setTestClient(){}
+   event void CommandHandler.setTestClient(uint16_t dest, uint16_t destPort, uint16_t srcPort, uint16_t transfer){
+   socket_addr_t socket_address;
+      socket_addr_t socket_server;
+   
+   socket_t fd = call Transport.socket();
+   //dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
+   socket_address.addr = TOS_NODE_ID;
+   socket_address.port = srcPort;
+    if(call Transport.bindS(fd, &socket_address) == SUCCESS){
+       dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
+     }
+      socket_server.addr = dest;
+   socket_server.port = destPort;
+   
+   
+   }
 
    event void CommandHandler.setAppServer(){}
 

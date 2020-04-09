@@ -23,6 +23,7 @@ s.addChannel(s.GENERAL_CHANNEL);
 #s.addChannel(s.NEIGHBOR_CHANNEL);
 #s.addChannel(s.FLOODING_CHANNEL);
 s.addChannel(s.TRANSPORT_CHANNEL);
+#s.addChannel(s.HASHMAP_CHANNEL);
     # After sending a ping, simulate a little to prevent collision.
 s.runTime(10);
 
@@ -35,11 +36,11 @@ s.runTime(10);
 
 
 
-s.testServer(2,"4");
-s.runTime(5);
+s.testServer(2,4);
+s.runTime(100);
 
-s.testServer(2,"1");
-s.runTime(5);
+s.testClient(2, 1, 1, 2, 25);
+s.runTime(100);
 
 
 
