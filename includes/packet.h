@@ -8,7 +8,7 @@
 
 # include "protocol.h"
 #include "channels.h"
-
+#include "TCP_packet.h"
 enum{
 	PACKET_HEADER_LENGTH = 8,
 	PACKET_MAX_PAYLOAD_SIZE = 28 - PACKET_HEADER_LENGTH,

@@ -158,13 +158,28 @@ table route[1];
          //Packhash(myMsg);
          }
          else{
+  
+         
    dbg(ROUTING_CHANNEL, "I have recived a message from %d and it says %s\n",myMsg->src, myMsg->payload);
          
          
          }
          
          
-      }   
+      }  
+       
+           if(myMsg->protocol==PROTOCOL_TCP){  
+          // if ping reply add nieghbor to neighbor list && will take care of nodes being added or dropped
+           if( TOS_NODE_ID!=myMsg->dest){
+           forwarding(myMsg);         
+         //Packhash(myMsg);
+         }else{
+                TCPpack payload;
+             memcpy(payload.payload, myMsg->payload, sizeof(payload.payload)*1);
+          dbg(ROUTING_CHANNEL, "I have recived a message from %d and its sending a flag of %d\n",myMsg->src, payload.payload[2]);
+         
+         }
+      } 
          
       if(myMsg->protocol==PROTOCOL_PINGREPLY){  
           // if ping reply add nieghbor to neighbor list && will take care of nodes being added or dropped
@@ -442,13 +457,13 @@ table route;
 route = call RoutingTable.get(Package->dest);
 if(route.Cost!=1){
 dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost:%d \n",Package->src,Package->dest,Package->seq,route.NextHop,route.Cost);
- makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
+ makePack(&sendPackage, Package->src, Package->dest, 3, Package->protocol, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
     call Sender.send(sendPackage,route.NextHop); //will send to next node
 }
 else{
 
-dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost:%d \n",Package->src,Package->dest,Package->seq,route.NextHop,route.Cost);
- makePack(&sendPackage, Package->src, Package->dest, 3, PROTOCOL_PING, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
+dbg(ROUTING_CHANNEL,"Routing Packet - src: %d, dest: %d, seq: %d, next hop: %d, cost:%d, protocol %d \n",Package->src,Package->dest,Package->seq,route.NextHop,route.Cost,Package->protocol);
+ makePack(&sendPackage, Package->src, Package->dest, 3, Package->protocol, Package->seq, (uint8_t*) Package->payload, sizeof( Package->payload));
     call Sender.send(sendPackage,Package->dest); //will send to its dest
 }
 
@@ -475,7 +490,33 @@ call Sender.send(sendPackage,route.NextHop);
 event void TCPtimer.fired(){
 //TCP Timer 
        dbg(TRANSPORT_CHANNEL, "TCP timer linked\n");
+       
+      
 
+   }
+   void makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq,uint16_t flag, uint16_t destPort, uint16_t srcPort, uint8_t length){
+     TCPpack payload;
+  Package->src = src;
+      Package->dest = dest;
+      Package->TTL = TTL;
+      Package->seq = seq;
+      Package->protocol = protocol;
+      payload.destport = destPort;
+            payload.payload[0] =  payload.destport;
+      
+      payload.srcport = srcPort;
+                  payload.payload[1] =  payload.srcport;
+      
+      payload.flag = flag;
+                        payload.payload[2] =  payload.flag;
+      
+      memcpy(Package->payload, payload.payload, length);
+   }
+   
+   void synPacket(uint16_t dest, uint16_t destPort, uint16_t srcPort,socket_t fd){
+   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,0, 5, destPort, srcPort,TCP_PACKET_MAX_PAYLOAD_SIZE );
+   forwarding(&sendPackage);
+   
    }
 
 //-------------------------------------------------------------------End of project 3
@@ -524,6 +565,7 @@ event void TCPtimer.fired(){
     if(call Transport.bindS(fd, &socket_address) == SUCCESS){
        dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
      }
+     synPacket( dest,  destPort,  srcPort, fd);
       socket_server.addr = dest;
    socket_server.port = destPort;
    
