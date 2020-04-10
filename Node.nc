@@ -492,6 +492,7 @@ call Sender.send(sendPackage,route.NextHop);
 event void TCPtimer.fired(){
 //TCP Timer 
  socket_store_t temp;
+       socket_addr_t socket_server;
    uint16_t size = call SocketsTable.size();
    uint8_t i =1;
       for(i;i<=size;i++){
@@ -529,7 +530,9 @@ call SocketsTable.insert(i, temp);
       payload.srcport = srcPort;
       payload.payload[1] =  payload.srcport;
       payload.flag = flag;
-                        payload.payload[2] =  payload.flag;
+      payload.payload[2] =  payload.flag;
+         payload.seq = seq;
+      payload.payload[3] =  payload.seq;
       
       memcpy(Package->payload, payload.payload, length);
    }
@@ -564,7 +567,7 @@ call SocketsTable.insert(i, temp);
  dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
    socket.addr = TOS_NODE_ID;
    socket.port = port;
-        if(call Transport.bindS(fd, &socket) == SUCCESS){
+        if(call Transport.bind(fd, &socket) == SUCCESS){
        dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
      }
    if(call Transport.listen(fd) == SUCCESS) {
@@ -589,16 +592,18 @@ call SocketsTable.insert(i, temp);
    socket_address.addr = TOS_NODE_ID;
    socket_address.port = srcPort;
     if(call Transport.bindS(fd, &socket_address) == SUCCESS){
-       dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
+       dbg(TRANSPORT_CHANNEL, "Client: BINDING SUCCESS!\n");
        //get socket
      tempsocket =  call Transport.getSocket(fd);
      call SocketsTable.insert(fd, tempsocket);
           synPacket( dest,  destPort,  srcPort, fd);
                 call TCPtimer.startOneShot(12000);
      }
-    //  socket_server.addr = dest;
-   //socket_server.port = destPort;
-   
+      socket_server.addr = dest;
+   socket_server.port = destPort;
+     if(call Transport.connect(tempsocket.fd, &socket_server) == SUCCESS){
+       dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
+     }
    
    }
 

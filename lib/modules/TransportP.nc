@@ -161,10 +161,20 @@ call SocketsTable.insert(fd, socket);
  
   }
   
-   command error_t connect(socket_t fd, socket_addr_t * addr){
-   
-   
-   
+   command error_t Transport.connect(socket_t fd, socket_addr_t * addr){   
+        socket_store_t temp;
+    error_t e;
+ 	temp = call SocketsTable.get(fd);
+       call SocketsTable.remove(fd);
+ 
+ if(temp.state==SYN_RCVD){
+ temp.dest.addr= addr->addr;
+  temp.dest.port= addr->port;
+ }
+  call SocketsTable.insert(temp.fd,temp);
+ 
+if(temp.state==SYN_RCVD) return e = SUCCESS;
+    else      return e = FAIL;
    
    
    

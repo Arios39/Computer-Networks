@@ -19,9 +19,9 @@ nx_uint8_t destport;
 nx_uint8_t srcport;
 nx_uint8_t flag;
 nx_uint8_t ACK;
+nx_uint8_t seq;
 nx_uint8_t Awindow;
-nx_uint16_t payload[TCP_PACKET_MAX_PAYLOAD_SIZE]
-
+nx_uint16_t payload[TCP_PACKET_MAX_PAYLOAD_SIZE];
 }TCPpack;
 
 
