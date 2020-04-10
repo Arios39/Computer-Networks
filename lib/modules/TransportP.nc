@@ -15,6 +15,15 @@ module TransportP
 }
 implementation{
 
+command socket_store_t Transport.getSocket(socket_t fd){
+   socket_store_t temp;
+
+   temp = call SocketsTable.get(fd);
+
+
+return temp;
+}
+
 command socket_t Transport.socket(){
     socket_t fd;
    socket_store_t socket;
@@ -76,6 +85,8 @@ call SocketsTable.insert(fd, socket);
    temp_addy.port = addr->port;
       temp_addy.addr = addr->addr;
       temp.src=temp_addy;
+            temp.state = NONE;
+      
    }
     call SocketsTable.insert(i, temp);
    }
@@ -149,6 +160,20 @@ call SocketsTable.insert(fd, socket);
  
  
   }
+  
+   command error_t connect(socket_t fd, socket_addr_t * addr){
+   
+   
+   
+   
+   
+   
+   
+   
+   }
+  
+ 
+  
 
 
 

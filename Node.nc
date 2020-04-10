@@ -50,6 +50,7 @@ module Node{
 		uses interface Timer<TMilli> as TCPtimer;
 	
    uses interface SimpleSend as Sender;
+       uses interface Hashmap<socket_store_t> as SocketsTable;
    
    uses interface Hashmap<table> as RoutingTable;
       uses interface Transport;
@@ -63,6 +64,7 @@ module Node{
 
 implementation{
    pack sendPackage;
+   socket_t global_fd;
    // Project 1 implementations (functions)
 uint16_t seqNum=0;
 uint16_t PacketSent;
@@ -489,8 +491,29 @@ call Sender.send(sendPackage,route.NextHop);
 
 event void TCPtimer.fired(){
 //TCP Timer 
-       dbg(TRANSPORT_CHANNEL, "TCP timer linked\n");
-       
+ socket_store_t temp;
+   uint16_t size = call SocketsTable.size();
+   uint8_t i =1;
+      for(i;i<=size;i++){
+    temp = call SocketsTable.get(i);
+   call SocketsTable.remove(i);
+ switch(temp.state){
+ case NONE:
+ temp.state = SYN_SENT;
+  dbg(TRANSPORT_CHANNEL,"Changed port state to SYN_SENT\n");
+ 
+ break;
+ 
+ 
+ default:
+ break; 
+ }
+ 
+ 
+ 
+ 
+call SocketsTable.insert(i, temp);
+   }
       
 
    }
@@ -502,11 +525,9 @@ event void TCPtimer.fired(){
       Package->seq = seq;
       Package->protocol = protocol;
       payload.destport = destPort;
-            payload.payload[0] =  payload.destport;
-      
+      payload.payload[0] =  payload.destport;
       payload.srcport = srcPort;
-                  payload.payload[1] =  payload.srcport;
-      
+      payload.payload[1] =  payload.srcport;
       payload.flag = flag;
                         payload.payload[2] =  payload.flag;
       
@@ -514,7 +535,7 @@ event void TCPtimer.fired(){
    }
    
    void synPacket(uint16_t dest, uint16_t destPort, uint16_t srcPort,socket_t fd){
-   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,0, 5, destPort, srcPort,TCP_PACKET_MAX_PAYLOAD_SIZE );
+   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,0,SYN_SENT , destPort, srcPort,TCP_PACKET_MAX_PAYLOAD_SIZE );
    forwarding(&sendPackage);
    
    }
@@ -537,6 +558,8 @@ event void TCPtimer.fired(){
 
    event void CommandHandler.setTestServer(uint16_t port){
    socket_addr_t socket;
+           socket_store_t tempsocket;
+   
    socket_t fd = call Transport.socket();
  dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
    socket.addr = TOS_NODE_ID;
@@ -546,7 +569,9 @@ event void TCPtimer.fired(){
      }
    if(call Transport.listen(fd) == SUCCESS) {
        dbg(TRANSPORT_CHANNEL, "Fire timer\n");
-                call TCPtimer.startOneShot(6000);
+        tempsocket =  call Transport.getSocket(fd);
+     call SocketsTable.insert(fd, tempsocket);
+                //call TCPtimer.startOneShot(6000);
        
      }
 
@@ -557,6 +582,7 @@ event void TCPtimer.fired(){
    event void CommandHandler.setTestClient(uint16_t dest, uint16_t destPort, uint16_t srcPort, uint16_t transfer){
    socket_addr_t socket_address;
       socket_addr_t socket_server;
+        socket_store_t tempsocket;
    
    socket_t fd = call Transport.socket();
    //dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
@@ -564,10 +590,14 @@ event void TCPtimer.fired(){
    socket_address.port = srcPort;
     if(call Transport.bindS(fd, &socket_address) == SUCCESS){
        dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
+       //get socket
+     tempsocket =  call Transport.getSocket(fd);
+     call SocketsTable.insert(fd, tempsocket);
+          synPacket( dest,  destPort,  srcPort, fd);
+                call TCPtimer.startOneShot(12000);
      }
-     synPacket( dest,  destPort,  srcPort, fd);
-      socket_server.addr = dest;
-   socket_server.port = destPort;
+    //  socket_server.addr = dest;
+   //socket_server.port = destPort;
    
    
    }

@@ -10,6 +10,7 @@
 #include <Timer.h>
 #include "includes/CommandMsg.h"
 #include "includes/packet.h"
+#include "includes/socket.h"
 
 configuration NodeC{
 
@@ -17,6 +18,7 @@ configuration NodeC{
 implementation {
     components MainC;
     components Node;
+     //components TransportC;
  
     components new AMReceiverC(AM_PACK) as GeneralReceive;
 	components new TimerMilliC() as neighbortimer;
@@ -28,7 +30,6 @@ implementation {
 	Node.neighbortimer -> neighbortimer;
 	Node.TCPtimer -> TCPtimer;
     Node.Receive -> GeneralReceive;
-
 	components new HashmapC(table,255) as RoutingTableC;
 	Node.RoutingTable -> RoutingTableC;
 	
@@ -47,10 +48,12 @@ implementation {
 
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;
-    
+    components new HashmapC(socket_store_t,10) as SocketsTable;
+Node.SocketsTable -> SocketsTable;	
     
         components TransportC;
     Node.Transport -> TransportC;
+      //  Node.SocketsTable->TransportC.SocketsTable;
     
     
 }

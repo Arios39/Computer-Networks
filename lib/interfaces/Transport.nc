@@ -27,7 +27,7 @@ interface Transport{
     *    a socket then return a NULL socket_t.
     */
    command socket_t socket();
-
+   command socket_store_t getSocket(socket_t fd);
    /**
     * Bind a socket with an address.
     * @param
@@ -113,7 +113,7 @@ interface Transport{
     * @return socket_t - returns SUCCESS if you are able to attempt
     *    a connection with the fd passed, else return FAIL.
     */
-  // command error_t connect(socket_t fd, socket_addr_t * addr);
+ command error_t connect(socket_t fd, socket_addr_t * addr);
 
    /**
     * Closes the socket.

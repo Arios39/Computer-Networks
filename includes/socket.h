@@ -11,6 +11,7 @@ enum{
 enum socket_state{
     CLOSED,
     LISTEN,
+    NONE,
     ESTABLISHED,
     SYN_SENT,
     SYN_RCVD,
@@ -25,7 +26,6 @@ typedef nx_struct socket_addr_t{
     nx_socket_port_t port;
     nx_uint16_t addr;
 }socket_addr_t;
-
 
 // File descripter id. Each id is associated with a socket_store_t
 typedef uint8_t socket_t;
