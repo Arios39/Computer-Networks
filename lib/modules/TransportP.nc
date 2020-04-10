@@ -11,7 +11,7 @@ module TransportP
    provides interface Transport;
 
     uses interface Hashmap<socket_store_t> as SocketsTable;
- 
+ 	uses interface SimpleSend as Sender;
 }
 implementation{
 
@@ -144,12 +144,29 @@ call SocketsTable.insert(fd, socket);
 
    if(suc) return e = SUCCESS;
     else      return e = FAIL;
-  
- 
- 
- 
   }
 
+command error_t Transport.connect(socket_t fd, socket_addr_t * addr){
+
+error_t e;
+ socket_store_t temp;
+
+pack synPack;
+TCPpack* TCP_PACKET;
+
+socket_store_t Socket;
+TCP_PACKET = (TCPpack*)(synPack.payload);
+TCP_PACKET->destport = Socket.dest.port;
+TCP_PACKET ->srcport = Socket.src.port;
+TCP_PACKET ->ACK =0;
+TCP_PACKET ->seq =1;
+TCP_PACKET->flag = SYN_Flag;
+
+dbg(PROTOCOL_TCP, "NODE %u is in State %u \n", Socket.dest.addr, temp.state);
+if(TCP_PACKET->seq!=1) return e = SUCCESS;
+    else      return e = FAIL;
+
+}
 
 
 
