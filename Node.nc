@@ -537,11 +537,16 @@ call SocketsTable.insert(i, temp);
   
    }
    
-   TCPpack makePayload(uint16_t seq,uint16_t flag,uint16_t TTL){
+   TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow){
    TCPpack payload;
   
-   payload.payload[0] = payload.seq;
-   payload.payload[1] = payload.flag;
+   payload.payload[0]=payload.destport;
+   payload.payload[1]=payload.srcport;
+   payload.payload[2]=payload.flag;
+   payload.payload[3]=payload.ACK;
+   payload.payload[4]=payload.seq;
+   payload.payload[5]=payload.Awindow;
+  
    return payload;
    }
    
