@@ -19,6 +19,7 @@ implementation {
     components MainC;
     components Node;
      //components TransportC;
+     components RandomC as Random;
  
     components new AMReceiverC(AM_PACK) as GeneralReceive;
 	components new TimerMilliC() as neighbortimer;
@@ -27,6 +28,8 @@ implementation {
 	
     Node -> MainC.Boot;
     Node.routingtimer->routingtimer;
+        Node.Random -> Random;
+    
 	Node.neighbortimer -> neighbortimer;
 	Node.TCPtimer -> TCPtimer;
     Node.Receive -> GeneralReceive;

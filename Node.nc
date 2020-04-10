@@ -45,6 +45,8 @@ module Node{
    uses interface Boot;  
    uses interface SplitControl as AMControl;
    uses interface Receive;
+      uses interface Random as Random;
+   
 	uses interface Timer<TMilli> as neighbortimer;
 	uses interface Timer<TMilli> as routingtimer;
 		uses interface Timer<TMilli> as TCPtimer;
@@ -77,6 +79,7 @@ float Q;
      void printNeighbors();
      void ListHandler(pack *Package);
      void replypackage(pack *Package);
+        void makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq,uint16_t flag, uint16_t destPort, uint16_t srcPort, uint8_t length);
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
    // end of project 1 functions 
    
@@ -178,7 +181,23 @@ table route[1];
          }else{
                 TCPpack payload;
              memcpy(payload.payload, myMsg->payload, sizeof(payload.payload)*1);
-          dbg(ROUTING_CHANNEL, "I have recived a message from %d and its sending a flag of %d\n",myMsg->src, payload.payload[2]);
+             
+            switch (payload.payload[2]){
+            case SYN_Flag:
+                        dbg(ROUTING_CHANNEL, "I have recived a message from %d and its sending a flag of %d\n",myMsg->src, payload.payload[2]);
+               makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq,SYN_Ack_Flag , 0, 0,TCP_PACKET_MAX_PAYLOAD_SIZE );
+               forwarding(&sendPackage);
+            
+            break;
+             case SYN_Ack_Flag:
+                        dbg(ROUTING_CHANNEL, "I have recived a message from %d and its sending a flag of %d\n",myMsg->src, payload.payload[2]);
+            
+            break;
+            
+            default:
+            break;
+            
+            }
          
          }
       } 
@@ -520,7 +539,7 @@ call SocketsTable.insert(i, temp);
    }
    void makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq,uint16_t flag, uint16_t destPort, uint16_t srcPort, uint8_t length){
      TCPpack payload;
-  Package->src = src;
+      Package->src = src;
       Package->dest = dest;
       Package->TTL = TTL;
       Package->seq = seq;
@@ -538,7 +557,9 @@ call SocketsTable.insert(i, temp);
    }
    
    void synPacket(uint16_t dest, uint16_t destPort, uint16_t srcPort,socket_t fd){
-   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,0,SYN_SENT , destPort, srcPort,TCP_PACKET_MAX_PAYLOAD_SIZE );
+         uint16_t randseq = (call Random.rand16()%300);
+   
+   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,randseq,SYN_Flag , destPort, srcPort,TCP_PACKET_MAX_PAYLOAD_SIZE );
    forwarding(&sendPackage);
    
    }
@@ -586,24 +607,23 @@ call SocketsTable.insert(i, temp);
    socket_addr_t socket_address;
       socket_addr_t socket_server;
         socket_store_t tempsocket;
-   
+ uint16_t randseq = (call Random.rand16()%300);
    socket_t fd = call Transport.socket();
    //dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
    socket_address.addr = TOS_NODE_ID;
    socket_address.port = srcPort;
+   socket_server.addr = dest;
+   socket_server.port = destPort;
     if(call Transport.bindS(fd, &socket_address) == SUCCESS){
        dbg(TRANSPORT_CHANNEL, "Client: BINDING SUCCESS!\n");
        //get socket
      tempsocket =  call Transport.getSocket(fd);
      call SocketsTable.insert(fd, tempsocket);
-          synPacket( dest,  destPort,  srcPort, fd);
+          synPacket(dest,  destPort,  srcPort, fd);
                 call TCPtimer.startOneShot(12000);
      }
-      socket_server.addr = dest;
-   socket_server.port = destPort;
-     if(call Transport.connect(tempsocket.fd, &socket_server) == SUCCESS){
-       dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
-     }
+  
+ 
    
    }
 

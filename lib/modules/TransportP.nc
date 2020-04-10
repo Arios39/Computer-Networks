@@ -175,11 +175,7 @@ call SocketsTable.insert(fd, socket);
  
 if(temp.state==SYN_RCVD) return e = SUCCESS;
     else      return e = FAIL;
-   
-   
-   
-   
-   
+ 
    }
   
  
