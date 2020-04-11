@@ -77,6 +77,7 @@ float Q;
    void findneighbor();
     void Packhash(pack* Package);
      void printNeighbors();
+      socket_t getfd(TCPpack payload);
      void ListHandler(pack *Package);
      void replypackage(pack *Package);
       TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow);
@@ -141,6 +142,7 @@ findneighbor();
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    Neighbor neighbor;
                    socket_store_t temp;
+                   socket_t fd;
    
 table route[1];  
     // dbg(GENERAL_CHANNEL, "Packet Received\n");
@@ -187,22 +189,42 @@ table route[1];
              
             switch (payload.payload[2]){
             case SYN_Flag:
+            fd = getfd(payload);
+                temp = call SocketsTable.get(fd); 
                 dbg(TRANSPORT_CHANNEL, "I have recived a SYN_Flag from %d\n",myMsg->src);
-                temp = call SocketsTable.get(payload.payload[0]); 
-                call SocketsTable.remove(payload.payload[0]);
+                
+                call SocketsTable.remove(fd);
                 temp = call Transport.accept(temp, payload);
                 temp.dest.addr=myMsg->src;
-                call SocketsTable.insert(payload.payload[0], temp);
+                call SocketsTable.insert(fd, temp);
                 dbg(TRANSPORT_CHANNEL, "Binded socket to dest addr:%d dest port: %d\n",temp.dest.addr, temp.dest.port);
-                payload = makePayload( payload.payload[0],  payload.payload[1],SYN_Ack_Flag,1,myMsg->seq,0);
-  				makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
+                payload = makePayload( temp.dest.port,  temp.src.port,SYN_Ack_Flag,myMsg->seq+1,myMsg->seq,0);
+  				makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq+1,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
    				forwarding(&sendPackage);   
    				break;
    				
    				
              case SYN_Ack_Flag:
-                        dbg(ROUTING_CHANNEL, "I have recived a message from %d and its sending a flag of %d\n",myMsg->src, payload.payload[2]);
+      			  fd = getfd(payload);
+                temp = call SocketsTable.get(fd); 
+                 call SocketsTable.remove(fd);
+                 temp.state = ESTABLISHED;           
+                 call SocketsTable.insert(fd, temp);
+   				 dbg(TRANSPORT_CHANNEL, "Connection to Server Port Established %d\n", temp.dest.port);
+                 payload = makePayload( payload.payload[1],  payload.payload[0],Ack_Flag,myMsg->seq,myMsg->seq,0);
+  				makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq,payload,TCP_PACKET_MAX_PAYLOAD_SIZE ); //not complete
+   				forwarding(&sendPackage);  
+            break;
             
+            
+                  case Ack_Flag:
+      			   fd = getfd(payload);
+                temp = call SocketsTable.get(fd); 
+                 call SocketsTable.remove(fd);
+                 temp.state = ESTABLISHED;           
+                 call SocketsTable.insert(fd, temp);
+   				 dbg(TRANSPORT_CHANNEL, "Connection to Client Established %d\n ", temp.dest.port);
+                 
             break;
             
             default:
@@ -519,6 +541,36 @@ call Sender.send(sendPackage,route.NextHop);
 
 //------------------------------------------------------------------Project 3 functions
 
+ socket_t getfd(TCPpack payload){
+
+ socket_store_t temp;
+
+   uint16_t size = call SocketsTable.size();
+   uint8_t i =1;
+   if(call SocketsTable.isEmpty()){
+   
+   return 0;
+   
+   }
+   
+   for(i;i<=size;i++){
+   
+   temp = call SocketsTable.get(i);
+        dbg(TRANSPORT_CHANNEL,"%d\n",payload.payload[0]);
+   
+   if(temp.src.port == payload.payload[0]){
+     dbg(TRANSPORT_CHANNEL,"FOUND\n");
+   
+return i;      
+   }
+   
+   }
+
+
+return 0;
+}
+ 
+ 
   TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow){
    TCPpack payload;
   
@@ -536,18 +588,17 @@ call Sender.send(sendPackage,route.NextHop);
 
 event void TCPtimer.fired(){
 //TCP Timer 
- socket_store_t temp;
-       socket_addr_t socket_server;
+ 	socket_store_t temp;
+    socket_addr_t socket_server;
    uint16_t size = call SocketsTable.size();
    uint8_t i =1;
-      for(i;i<=size;i++){
-    temp = call SocketsTable.get(i);
+   for(i;i<=size;i++){
+   temp = call SocketsTable.get(i);
    call SocketsTable.remove(i);
+   dbg(TRANSPORT_CHANNEL,"Port state %d\n", temp.state);
  switch(temp.state){
- case NONE:
- temp.state = SYN_SENT;
-  dbg(TRANSPORT_CHANNEL,"Changed port state to SYN_SENT\n");
- 
+ case SYN_SENT:
+ dbg(TRANSPORT_CHANNEL,"Changed port state to SYN_SENT\n");
  break;
  
  
@@ -635,6 +686,8 @@ call SocketsTable.insert(i, temp);
        dbg(TRANSPORT_CHANNEL, "Client: BINDING SUCCESS!\n");
        //get socket
      tempsocket =  call Transport.getSocket(fd);
+            //dbg(TRANSPORT_CHANNEL, "src port..%d!\n",fd );
+      tempsocket.state = SYN_SENT;
      call SocketsTable.insert(fd, tempsocket);
           synPacket(dest,  destPort,  srcPort, fd);
                 call TCPtimer.startOneShot(12000);
