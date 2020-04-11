@@ -2,6 +2,7 @@
 #include "../../includes/packet.h"
 #include "../../includes/sendInfo.h"
 #include "../../includes/channels.h"
+#include "../../includes/TCP_packet.h"
 
 /**
  * The Transport interface handles sockets and is a layer of abstraction
@@ -55,7 +56,7 @@ interface Transport{
     *    a destination associated with the destination address and port.
     *    if not return a null socket.
     */
-  //command socket_t accept(socket_t fd);
+  command socket_store_t accept(socket_store_t temp, TCPpack payload );
 
    /**
     * Write to the socket from a buffer. This data will eventually be

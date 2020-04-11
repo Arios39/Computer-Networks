@@ -3,6 +3,8 @@
 #include "../../includes/packet.h"
 #include "../../includes/sendInfo.h"
 #include "../../includes/channels.h"
+#include "../../includes/TCP_packet.h"
+
 #define MAX_NUM_OF_SOCKETS 10
 
 
@@ -37,7 +39,7 @@ socket.fd=fd;
 
 call SocketsTable.insert(fd, socket);
 
- dbg(TRANSPORT_CHANNEL,"fd %d .\n", fd);
+ //dbg(TRANSPORT_CHANNEL,"fd %d .\n", fd);
 
 
       
@@ -152,7 +154,7 @@ call SocketsTable.insert(fd, socket);
    suc = TRUE;
  temp.state =LISTEN;
  if(temp.state==LISTEN){
- dbg(TRANSPORT_CHANNEL,"fd %d ..... Changed state to %d\n", fd, temp.state);
+ dbg(TRANSPORT_CHANNEL,"fd %d ..... Changed state to Listen\n", fd);
  }
  
  call SocketsTable.insert(temp.fd,temp);
@@ -184,6 +186,15 @@ if(temp.state==SYN_RCVD) return e = SUCCESS;
  
    }
   
+   command socket_store_t Transport.accept(socket_store_t temp, TCPpack payload){
+    temp.state = SYN_RCVD;
+    temp.dest.port = payload.payload[1];
+    
+    
+    
+    return temp;
+    
+    }
  
   
 
