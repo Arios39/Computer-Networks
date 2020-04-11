@@ -64,9 +64,11 @@ call SocketsTable.insert(fd, socket);
     */
   
    
-    command error_t Transport.bindS(socket_t fd, socket_addr_t *addr){
+    command error_t Transport.bindClient(socket_t fd, socket_addr_t *addr,socket_addr_t *server){
    socket_store_t temp;
    socket_addr_t temp_addy;
+      socket_addr_t temp_server;
+   
    error_t e;
    bool suc = FALSE;
    uint16_t size = call SocketsTable.size();
@@ -84,7 +86,11 @@ call SocketsTable.insert(fd, socket);
    suc = TRUE;
    temp_addy.port = addr->port;
       temp_addy.addr = addr->addr;
+      temp_server.port = server->port;
+      temp_server.addr = server->addr;
       temp.src=temp_addy;
+            temp.dest=temp_server;
+      
             temp.state = NONE;
       
    }

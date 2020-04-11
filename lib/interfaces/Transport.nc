@@ -41,7 +41,7 @@ interface Transport{
     *       if you were unable to bind.
     */
  command error_t bind(socket_t fd, socket_addr_t *addr);
-  command error_t bindS(socket_t fd, socket_addr_t *addr);
+  command error_t bindClient(socket_t fd, socket_addr_t *addr,socket_addr_t *server);
 
    /**
     * Checks to see if there are socket connections to connect to and
