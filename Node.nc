@@ -73,9 +73,9 @@ uint16_t PacketSent;
 uint16_t PacketArr;
 float Q;
    bool met(uint16_t neighbor);
-   bool inthemap(pack* Package);
+   bool inthemap( socket_t fd);
    void findneighbor();
-    void Packhash(pack* Package);
+   void Packhash(pack* Package, socket_t fd);
      void printNeighbors();
       socket_t getfd(TCPpack payload);
      void ListHandler(pack *Package);
@@ -83,6 +83,7 @@ float Q;
       TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow);
    void makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
+ //void EstablishedSend();
    // end of project 1 functions 
    
 //Project 2 implementations (functions)]
@@ -191,29 +192,31 @@ table route[1];
             case SYN_Flag:
             fd = getfd(payload);
                 temp = call SocketsTable.get(fd); 
-                dbg(TRANSPORT_CHANNEL, "I have recived a SYN_Flag from %d\n",myMsg->src);
+                dbg(TRANSPORT_CHANNEL, "SERVER:I have recived a SYN_Flag from %d\n",myMsg->src);
                 
                 call SocketsTable.remove(fd);
                 temp = call Transport.accept(temp, payload);
                 temp.dest.addr=myMsg->src;
                 call SocketsTable.insert(fd, temp);
-                dbg(TRANSPORT_CHANNEL, "Binded socket to dest addr:%d dest port: %d\n",temp.dest.addr, temp.dest.port);
+                dbg(TRANSPORT_CHANNEL, "SERVER: Binded socket to dest addr:%d dest port: %d\n",temp.dest.addr, temp.dest.port);
                 payload = makePayload( temp.dest.port,  temp.src.port,SYN_Ack_Flag,myMsg->seq+1,myMsg->seq,0);
   				makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq+1,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
+  				 Packhash(&sendPackage,fd);
    				forwarding(&sendPackage);   
    				break;
    				
    				
              case SYN_Ack_Flag:
       			  fd = getfd(payload);
-      			  dbg(TRANSPORT_CHANNEL, "Time is: %d\n", call TCPtimer.getNow() ); //This is a timer thing********
                 temp = call SocketsTable.get(fd); 
                  call SocketsTable.remove(fd);
                  temp.state = ESTABLISHED;           
                  call SocketsTable.insert(fd, temp);
-   				 dbg(TRANSPORT_CHANNEL, "Connection to Server Port Established %d\n", temp.dest.port);
+   				 dbg(TRANSPORT_CHANNEL, "CLIENT: Connection to Server Port Established %d\n", temp.dest.port);
                  payload = makePayload( payload.payload[1],  payload.payload[0],Ack_Flag,myMsg->seq,myMsg->seq,0);
   				makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq,payload,TCP_PACKET_MAX_PAYLOAD_SIZE ); //not complete
+  				  				 Packhash(&sendPackage,fd);
+  				
    				forwarding(&sendPackage);  
             break;
             
@@ -224,7 +227,7 @@ table route[1];
                  call SocketsTable.remove(fd);
                  temp.state = ESTABLISHED;           
                  call SocketsTable.insert(fd, temp);
-   				 dbg(TRANSPORT_CHANNEL, "Connection to Client Established %d\n ", temp.dest.port);
+   				 dbg(TRANSPORT_CHANNEL, "SERVER: Connection to Client Port Established %d\n ", temp.dest.port);
                  
             break;
             
@@ -232,6 +235,8 @@ table route[1];
             break;
             
             }
+                           call TCPtimer.startOneShot(12000);
+            
          
          }
       } 
@@ -336,20 +341,16 @@ neighbor.node = Package->src;
 //------------------------------------------------------------------------------------------------------- inthehashmap will check if node already has packet in cache
  
   
-   bool inthemap(pack* Package){
+   bool inthemap(socket_t fd){
 
       
-if(!call PacketCache.contains(Package->seq)){
+if(!call PacketCache.contains(fd)){
  //call PacketCache.remove(Package->src);
- dbg(FLOODING_CHANNEL, "Adding packet ( %s ) into cache with seqNum %d\n",Package->payload,Package->seq ); 
+ dbg(FLOODING_CHANNEL, "Adding packet \n" ); 
  return FALSE;
  }
-   if(call PacketCache.contains(Package->seq)&&Package->payload!="Help"){
-   dbg(FLOODING_CHANNEL, "packet ( %s ) already in cache will drop packet  \n",Package->payload ); 
-   return TRUE;
-   } 
    
-    if(call PacketCache.contains(Package->seq)&&Package->payload=="Help"){
+    if(call PacketCache.contains(fd)){
     //ignore help signal just add to neighborhood
     
     
@@ -383,19 +384,26 @@ if(!call PacketCache.contains(Package->seq)){
   //-----------------------------------------------------------------------------
   //this function will push packet to our node cache(PacketCache)
    
-   void Packhash(pack* Package){
+   void Packhash(pack* Package, socket_t fd){
       
-    if(!inthemap(Package)&&Package->dest==TOS_NODE_ID){
-    call PacketCache.insert(seqNum,sendPackage );
-    replypackage(Package);
+    if(!inthemap(fd)&&Package->src==TOS_NODE_ID){
+    call PacketCache.insert(fd,sendPackage);
     }
-   
-    if(!inthemap(Package)&&Package->dest!= TOS_NODE_ID){
-    call PacketCache.insert(seqNum,sendPackage );
-    replypackage(Package);
-    flood(Package);
+     if(inthemap(fd)&&Package->src==TOS_NODE_ID){
+          call PacketCache.remove(fd);
+    call PacketCache.insert(fd,sendPackage);
     }
+  
 
+   }
+   
+     pack getpack(socket_t fd){
+      pack temp;
+ 
+   temp = call PacketCache.get(fd); 
+
+
+return temp;
    }
    
 
@@ -557,10 +565,8 @@ call Sender.send(sendPackage,route.NextHop);
    for(i;i<=size;i++){
    
    temp = call SocketsTable.get(i);
-        dbg(TRANSPORT_CHANNEL,"%d\n",payload.payload[0]);
    
    if(temp.src.port == payload.payload[0]){
-     dbg(TRANSPORT_CHANNEL,"FOUND\n");
    
 return i;      
    }
@@ -589,19 +595,33 @@ return 0;
 
 event void TCPtimer.fired(){
 //TCP Timer 
- 	socket_store_t temp;
-    socket_addr_t socket_server;
-   uint16_t size = call SocketsTable.size();
-   uint8_t i =1;
-   for(i;i<=size;i++){
-   temp = call SocketsTable.get(i);
-   call SocketsTable.remove(i);
-   dbg(TRANSPORT_CHANNEL,"Port state %d\n", temp.state);
- switch(temp.state){
- case SYN_SENT:
- dbg(TRANSPORT_CHANNEL,"Changed port state to SYN_SENT\n");
- break;
+  socket_store_t temp;
+  pack resendpack;
+  socket_addr_t socket_server;
+  uint16_t size = call SocketsTable.size();
+  uint8_t i =1;
+  for(i;i<=size;i++){
+  temp = call SocketsTable.get(i);
+  call SocketsTable.remove(i);
+
+  switch(temp.state){
+  
+  case SYN_SENT:
+  dbg(TRANSPORT_CHANNEL,"Resending SYN_SENT\n");
+  resendpack = getpack(i);
+  forwarding(&resendpack);   
+  break;
  
+ 
+  case SYN_RCVD:
+  dbg(TRANSPORT_CHANNEL,"Resending SYN_RCVD\n");
+  resendpack = getpack(i);
+  forwarding(&resendpack);   
+  break;
+ 
+  case ESTABLISHED:
+  dbg(TRANSPORT_CHANNEL,"Starting to send data!\n");
+  break;
  
  default:
  break; 
@@ -628,12 +648,46 @@ call SocketsTable.insert(i, temp);
    void synPacket(uint16_t dest, uint16_t destPort, uint16_t srcPort,socket_t fd){
       TCPpack payload;
          uint16_t randseq = (call Random.rand16()%300);
-         dbg(TRANSPORT_CHANNEL, "Time is: %d\n", call TCPtimer.getNow() ); //This is a timer thing********
+         
    payload = makePayload(destPort, srcPort,SYN_Flag,0,randseq,0);
   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,randseq,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
+    				 Packhash(&sendPackage,fd);
+  
    forwarding(&sendPackage);
    
    }
+   
+   void EstablishedSend(){
+  TCPpack payload;
+ socket_store_t temp;
+
+ 
+  uint8_t window;
+  uint16_t size = call SocketsTable.size();
+  uint16_t fd;
+  uint16_t A = temp.lastAck;
+  uint16_t j;
+ for(fd=1; fd <= size; fd++){
+ 	temp = call SocketsTable.get(fd); 
+ j=0;
+ 
+ 		if(temp.state == ESTABLISHED){
+ 		
+ 		 for(A=temp.lastAck; A< temp.effectiveWindow; A++) {
+  						payload.payload[j] = A;
+  
+  }
+  
+ }
+ // makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
+ }
+ 
+            
+ 
+ // makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
+   }
+   
+   
 
 //-------------------------------------------------------------------End of project 3
 
@@ -656,13 +710,10 @@ call SocketsTable.insert(i, temp);
            socket_store_t tempsocket;
    
    socket_t fd = call Transport.socket();
- dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
    socket.addr = TOS_NODE_ID;
    socket.port = port;
         if(call Transport.bind(fd, &socket) == SUCCESS){
-       dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
-     
-      // dbg(TRANSPORT_CHANNEL, "SERVER: BINDING SUCCESS!\n");
+ dbg(TRANSPORT_CHANNEL,"Server Binding to port: %d success!\n", port);
      }
    if(call Transport.listen(fd) == SUCCESS) {
       // dbg(TRANSPORT_CHANNEL, "Fire timer\n");
@@ -687,18 +738,18 @@ call SocketsTable.insert(i, temp);
    socket_server.addr = dest;
    socket_server.port = destPort;
     if(call Transport.bindClient(fd, &socket_address, &socket_server) == SUCCESS){
-       dbg(TRANSPORT_CHANNEL, "Client: BINDING SUCCESS!\n");
+       dbg(TRANSPORT_CHANNEL, "Client: Binding to port: %d!\n", srcPort);
        //get socket
-    
-      
-      
      tempsocket =  call Transport.getSocket(fd);
             //dbg(TRANSPORT_CHANNEL, "src port..%d!\n",fd );
       tempsocket.state = SYN_SENT;
      call SocketsTable.insert(fd, tempsocket);
           synPacket(dest,  destPort,  srcPort, fd);
                 call TCPtimer.startOneShot(12000);
+                
      }
+     
+    
   
  
    
