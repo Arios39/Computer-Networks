@@ -17,6 +17,11 @@ enum socket_state{
     SYN_RCVD,
 };
 
+enum My_port{
+    SERVER,
+    CLIENT,
+};
+
 
 typedef nx_uint8_t nx_socket_port_t;
 typedef uint8_t socket_port_t;
@@ -33,10 +38,12 @@ typedef uint8_t socket_t;
 // State of a socket. 
 typedef struct socket_store_t{
     uint8_t flag;
+    uint8_t Transfer_Buffer;
     enum socket_state state;
     socket_addr_t src;
     socket_addr_t dest;
-socket_t fd;
+    socket_t fd;
+    enum My_port TYPE;
     // This is the sender portion.
     uint8_t sendBuff[SOCKET_BUFFER_SIZE];
     uint8_t lastWritten;

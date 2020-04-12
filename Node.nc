@@ -79,6 +79,7 @@ float Q;
      void printNeighbors();
       socket_t getfd(TCPpack payload);
      void ListHandler(pack *Package);
+     void EstablishedSend();
      void replypackage(pack *Package);
       TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow);
    void makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
@@ -196,6 +197,7 @@ table route[1];
                 call SocketsTable.remove(fd);
                 temp = call Transport.accept(temp, payload);
                 temp.dest.addr=myMsg->src;
+                temp.effectiveWindow=payload.payload[5];
                 call SocketsTable.insert(fd, temp);
                 dbg(TRANSPORT_CHANNEL, "SERVER: Binded socket to dest addr:%d dest port: %d\n",temp.dest.addr, temp.dest.port);
                 payload = makePayload( temp.dest.port,  temp.src.port,SYN_Ack_Flag,myMsg->seq+1,myMsg->seq,0);
@@ -227,6 +229,8 @@ table route[1];
                  temp.state = ESTABLISHED;           
                  call SocketsTable.insert(fd, temp);
    				 dbg(TRANSPORT_CHANNEL, "SERVER: Connection to Client Port Established %d\n ", temp.dest.port);
+   				 dbg(TRANSPORT_CHANNEL, "SERVER: window %d\n ", temp.effectiveWindow);
+   				 
                  
             break;
             
@@ -601,7 +605,7 @@ event void TCPtimer.fired(){
   uint8_t i =1;
   for(i;i<=size;i++){
   temp = call SocketsTable.get(i);
-  call SocketsTable.remove(i);
+//  call SocketsTable.remove(i);
 
   switch(temp.state){
   
@@ -619,7 +623,12 @@ event void TCPtimer.fired(){
   break;
  
   case ESTABLISHED:
-  dbg(TRANSPORT_CHANNEL,"Starting to send data!\n");
+  if(temp.TYPE==CLIENT){
+    dbg(TRANSPORT_CHANNEL,"Sending data\n");
+  
+  EstablishedSend();
+  
+  }
   break;
  
  default:
@@ -644,17 +653,56 @@ call SocketsTable.insert(i, temp);
       memcpy(Package->payload, payload.payload, length);
    }
    
-   void synPacket(uint16_t dest, uint16_t destPort, uint16_t srcPort,socket_t fd){
+   void synPacket(uint16_t dest, uint16_t destPort, uint16_t srcPort,socket_t fd,uint16_t window){
       TCPpack payload;
          uint16_t randseq = (call Random.rand16()%300);
          
-   payload = makePayload(destPort, srcPort,SYN_Flag,0,randseq,0);
+   payload = makePayload(destPort, srcPort,SYN_Flag,0,randseq,window);
   makeTCPpacket(&sendPackage, TOS_NODE_ID,dest, 3, PROTOCOL_TCP,randseq,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
     				 Packhash(&sendPackage,fd);
   
    forwarding(&sendPackage);
    
    }
+
+  void EstablishedSend(){
+  TCPpack payload;
+ socket_store_t temp;
+  uint8_t window;
+  uint16_t size = call SocketsTable.size();
+  uint16_t fd;
+  uint16_t A =0;
+  uint16_t j;
+  
+ for(fd=1; fd <= size; fd++){
+ 	temp = call SocketsTable.get(fd); 
+ 	   						 dbg(TRANSPORT_CHANNEL,"Sending ");
+ 	
+ j=0;
+ 
+ 		if(temp.state == ESTABLISHED&&temp.lastAck!=temp.Transfer_Buffer){
+ 		 for(A=0; A< temp.effectiveWindow; A++) {
+  						payload.payload[j] = A+temp.lastAck;
+  						 dbg(TRANSPORT_CHANNEL," %d, ", payload.payload[j]);
+  						temp.sendBuff[j] = A+temp.lastAck;
+  						j++;
+  }
+  
+ }else if(temp.state != ESTABLISHED){
+   call TCPtimer.startOneShot(12000);
+  }
+  temp.lastSent = temp.sendBuff[j];
+  
+    makeTCPpacket(&sendPackage, TOS_NODE_ID,temp.dest.addr, 3, PROTOCOL_TCPDATA,0,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
+ // makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
+ }
+ 
+            
+ 
+ // makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
+   }
+
+
 
 //-------------------------------------------------------------------End of project 3
 
@@ -685,6 +733,7 @@ call SocketsTable.insert(i, temp);
    if(call Transport.listen(fd) == SUCCESS) {
       // dbg(TRANSPORT_CHANNEL, "Fire timer\n");
         tempsocket =  call Transport.getSocket(fd);
+        tempsocket.TYPE= SERVER;
      call SocketsTable.insert(fd, tempsocket);
                 //call TCPtimer.startOneShot(6000);
        
@@ -710,8 +759,12 @@ call SocketsTable.insert(i, temp);
      tempsocket =  call Transport.getSocket(fd);
             //dbg(TRANSPORT_CHANNEL, "src port..%d!\n",fd );
       tempsocket.state = SYN_SENT;
-     call SocketsTable.insert(fd, tempsocket);
-          synPacket(dest,  destPort,  srcPort, fd);
+      tempsocket.TYPE= CLIENT;
+      tempsocket.lastAck=0;
+      tempsocket.Transfer_Buffer= transfer;
+      tempsocket.effectiveWindow=transfer%20;
+      call SocketsTable.insert(fd, tempsocket);
+          synPacket(dest,  destPort,  srcPort, fd, tempsocket.effectiveWindow);
                 call TCPtimer.startOneShot(12000);
                 
      }
