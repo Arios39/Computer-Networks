@@ -23,7 +23,7 @@ s.addChannel(s.GENERAL_CHANNEL);
 #s.addChannel(s.NEIGHBOR_CHANNEL);
 #s.addChannel(s.FLOODING_CHANNEL);
 s.addChannel(s.TRANSPORT_CHANNEL);
-s.addChannel(s.ROUTING_CHANNEL);
+#s.addChannel(s.ROUTING_CHANNEL);
 #s.addChannel(s.HASHMAP_CHANNEL);
     # After sending a ping, simulate a little to prevent collision.
 s.runTime(10);
@@ -42,6 +42,7 @@ s.runTime(100);
 #dest destport srcport transfer
 s.testClient(1, 2, 4, 5, 25);
 s.runTime(100);
+
 
 
 

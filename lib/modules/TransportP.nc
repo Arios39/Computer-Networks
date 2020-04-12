@@ -155,7 +155,7 @@ call SocketsTable.insert(fd, socket);
    suc = TRUE;
  temp.state =LISTEN;
  if(temp.state==LISTEN){
- dbg(TRANSPORT_CHANNEL,"fd %d ..... Changed state to Listen\n", fd);
+ dbg(TRANSPORT_CHANNEL,"Changed state to Listen!\n");
  }
  
  call SocketsTable.insert(temp.fd,temp);
