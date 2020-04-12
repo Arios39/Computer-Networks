@@ -79,6 +79,7 @@ float Q;
      void printNeighbors();
       socket_t getfd(TCPpack payload);
      void ListHandler(pack *Package);
+     void Sread(TCPpack payload, uint16_t src);
      void EstablishedSend();
      void replypackage(pack *Package);
       TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow);
@@ -244,6 +245,36 @@ table route[1];
          }
       } 
          
+         
+            if(myMsg->protocol==PROTOCOL_TCPDATA){ 
+              if( TOS_NODE_ID!=myMsg->dest){
+           forwarding(myMsg);         
+         //Packhash(myMsg);
+         }else{
+             TCPpack payload;
+             memcpy(payload.payload, myMsg->payload, sizeof(payload.payload)*1);
+             
+            switch (temp.TYPE){
+            case SERVER:
+              Sread( payload,myMsg->src);
+            
+            break;
+            default:
+           	break;
+            }
+            
+            }
+            }
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
       if(myMsg->protocol==PROTOCOL_PINGREPLY){  
           // if ping reply add nieghbor to neighbor list && will take care of nodes being added or dropped
            ListHandler(myMsg);
@@ -251,6 +282,9 @@ table route[1];
          
          
          // This will take care of the dest node from reciving the deliverd packet again and again...
+         
+         
+         
          
        
      //-------------------------------------------endofneighbordiscovery 
@@ -673,34 +707,73 @@ call SocketsTable.insert(i, temp);
   uint16_t fd;
   uint16_t A =0;
   uint16_t j;
+    uint16_t x=0;
   
  for(fd=1; fd <= size; fd++){
  	temp = call SocketsTable.get(fd); 
- 	   						 dbg(TRANSPORT_CHANNEL,"Sending ");
  	
  j=0;
  
  		if(temp.state == ESTABLISHED&&temp.lastAck!=temp.Transfer_Buffer){
- 		 for(A=0; A< temp.effectiveWindow; A++) {
+ 		 for(A=1; A<=temp.effectiveWindow; A++) {
   						payload.payload[j] = A+temp.lastAck;
-  						 dbg(TRANSPORT_CHANNEL," %d, ", payload.payload[j]);
   						temp.sendBuff[j] = A+temp.lastAck;
   						j++;
   }
+    					
+  
   
  }else if(temp.state != ESTABLISHED){
    call TCPtimer.startOneShot(12000);
   }
-  temp.lastSent = temp.sendBuff[j];
+  if(temp.state == ESTABLISHED){
+  dbg(TRANSPORT_CHANNEL,"Writing to sendBuffer..... ");
+  while(x<j){
+  printf("%d,",temp.sendBuff[x]);
   
-    makeTCPpacket(&sendPackage, TOS_NODE_ID,temp.dest.addr, 3, PROTOCOL_TCPDATA,0,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
+  x++;
+  }
+    printf("\n");
+    temp.lastWritten= temp.sendBuff[j-1];
+    dbg(TRANSPORT_CHANNEL,"last Written %d\n", temp.lastWritten);
+    
+      makeTCPpacket(&sendPackage, TOS_NODE_ID,temp.dest.addr, 3, PROTOCOL_TCPDATA,0,payload,TCP_PACKET_MAX_PAYLOAD_SIZE ); 
+  
+   }	   						
+  
+   // makeTCPpacket(&sendPackage, TOS_NODE_ID,temp.dest.addr, 3, PROTOCOL_TCPDATA,0,payload,TCP_PACKET_MAX_PAYLOAD_SIZE ); 
  // makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
  }
  
             
- 
- // makeTCPpacket(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq,TCPpack payload, uint8_t length);
+ }
+   
+  
+  void Sread(TCPpack payload, uint16_t src){
+  // first look for src in list
+   socket_store_t temp;
+   uint16_t size = call SocketsTable.size();
+   uint8_t i =1;
+   if(call SocketsTable.isEmpty()){
+	dbg(TRANSPORT_CHANNEL,"Socket list EMPTY\n");
    }
+   for(i;i<=size;i++){
+   
+   temp = call SocketsTable.get(i);
+   
+   if(temp.src.addr == src){
+
+	dbg(TRANSPORT_CHANNEL,"Reading %u\n", payload.payload);
+
+   }
+   
+   }
+  
+  
+  }
+  
+  
+  
 
 
 
