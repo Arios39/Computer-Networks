@@ -78,6 +78,7 @@ float Q;
    void Packhash(pack* Package, socket_t fd);
      void printNeighbors();
       socket_t getfd(TCPpack payload);
+       uint16_t getfdmsg(uint16_t src);
      void ListHandler(pack *Package);
 void Sread(pack* myMsg, uint16_t src);
      void EstablishedSend();
@@ -255,18 +256,24 @@ table route[1];
          }
          else{
              TCPpack payload;
+              fd = getfdmsg(myMsg->src);
                                                memcpy(payload.payload, myMsg->payload, sizeof( myMsg->payload)*1);
                 				// dbg(TRANSPORT_CHANNEL, "SERVER: window %d\n ",PACKET_MAX_PAYLOAD_SIZE );
              
-                fd = getfd(payload);
                 
                 temp = call SocketsTable.get(fd); 
                 // call SocketsTable.remove(fd);
             switch (temp.TYPE){
             
             case SERVER:    
-                    
-              Sread(myMsg,myMsg->src);
+            if(myMsg->payload[2]==Data_Flag){
+            
+            
+
+
+
+             }       
+          
             break;
             
               case CLIENT:    
@@ -629,6 +636,32 @@ return i;
 
 return 0;
 }
+ uint16_t getfdmsg(uint16_t src){
+
+ socket_store_t temp;
+
+   uint16_t size = call SocketsTable.size();
+   uint8_t i =1;
+   if(call SocketsTable.isEmpty()){
+   
+   return 0;
+   
+   }
+   
+   for(i;i<=size;i++){
+   
+   temp = call SocketsTable.get(i);
+   
+   if(temp.dest.addr == src){
+   
+return i;      
+   }
+   
+   }
+
+
+return 0;
+}
  
  
   TCPpack makePayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow){
@@ -810,7 +843,7 @@ void Sread(pack* myMsg, uint16_t src){
    
    for(j;j<temp.effectiveWindow;j++){
  
-   if( temp.nextExpected= temp.lastRead+1){
+   if( temp.nextExpected==temp.lastRead+1){
 	  temp.rcvdBuff[j] = myMsg->payload[j+6]; //copy payload into received buffer
 	 temp.lastRead = temp.rcvdBuff[j];
 	  temp.nextExpected = temp.rcvdBuff[j]+1;
@@ -841,8 +874,8 @@ void Sread(pack* myMsg, uint16_t src){
 								p.payload[5]=temp.effectiveWindow ;
 									dbg(TRANSPORT_CHANNEL,"pack from %d ",myMsg->src );
 								
-	 //	makePack(&sendPackage, TOS_NODE_ID,myMsg->src , 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
-							//  forwarding(&sendPackage);
+	 makePack(&sendPackage, TOS_NODE_ID,myMsg->src , 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+						forwarding(&sendPackage);
 	 
    }
    
