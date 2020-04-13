@@ -256,6 +256,9 @@ table route[1];
          }
          else{
              TCPpack payload;
+             uint16_t i =0;
+              uint8_t A =0;
+              pack p;
               fd = getfdmsg(myMsg->src);
                                                memcpy(payload.payload, myMsg->payload, sizeof( myMsg->payload)*1);
                 				// dbg(TRANSPORT_CHANNEL, "SERVER: window %d\n ",PACKET_MAX_PAYLOAD_SIZE );
@@ -267,18 +270,59 @@ table route[1];
             
             case SERVER:    
             if(myMsg->payload[2]==Data_Flag){
-            
-            
+  
 
-
+   
+   
+   for(i; i<temp.effectiveWindow;i++){
+   
+   
+   
+   if( temp.nextExpected==temp.lastRead+1){
+	  temp.rcvdBuff[i] = myMsg->payload[i+6]; //copy payload into received buffer
+	  	  	  	//dbg(TRANSPORT_CHANNEL,"bit %d\n",myMsg->payload[i+6]);
+	  
+	 temp.lastRead = temp.rcvdBuff[i];
+	  temp.nextExpected = temp.rcvdBuff[i]+1;
+	  }else{
+	  	  	dbg(TRANSPORT_CHANNEL,"getting wrong bit%d\n",myMsg->payload[i+6]);
+	  	  	break;
+	  
+	  }
+	  
+   
+   }
+   
+     dbg(TRANSPORT_CHANNEL,"Reading Data: ");
+	while(A<i){
+		printf("%d,",temp.rcvdBuff[A]);
+		A++;
+	 }
+	 		printf("\n" );
+   p.payload[0]=temp.dest.port;
+     p.payload[1]=temp.src.port;
+       p.payload[2]=Data_Ack_Flag;
+         p.payload[3]= temp.lastRead;
+    p.payload[4]=  temp.nextExpected;
+   temp.effectiveWindow=myMsg->payload[5];
+    
+    call SocketsTable.remove(fd);
+        call SocketsTable.insert(fd, temp);
+    makePack(&sendPackage, TOS_NODE_ID,myMsg->src , 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+						forwarding(&sendPackage);
+   
 
              }       
           
             break;
             
               case CLIENT:    
-            //temp.lastAck = myMsg->payload[3];
-                            			//	 dbg(TRANSPORT_CHANNEL, "---------- last bit found%d\n ",   temp.lastAck);
+            temp.lastAck = myMsg->payload[3];
+            call SocketsTable.remove(fd);
+        call SocketsTable.insert(fd, temp);
+                            		 dbg(TRANSPORT_CHANNEL, "---------- last bit rec %d\n ",   temp.lastAck);
+                            		 
+              EstablishedSend();
             
             break;
             default:
@@ -916,6 +960,9 @@ void Sread(pack* myMsg, uint16_t src){
       // dbg(TRANSPORT_CHANNEL, "Fire timer\n");
         tempsocket =  call Transport.getSocket(fd);
         tempsocket.TYPE= SERVER;
+                tempsocket.nextExpected= 1;
+                tempsocket.lastRead=0;
+        
          tempsocket.lastRead = 0;
      call SocketsTable.insert(fd, tempsocket);
                 //call TCPtimer.startOneShot(6000);
