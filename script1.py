@@ -40,7 +40,7 @@ s.runTime(10);
 s.testServer(2,4);
 s.runTime(100);
 #dest destport srcport transfer
-s.testClient(1, 2, 4, 5, 25);
+s.testClient(1, 2, 4, 5, 60);
 s.runTime(100);
 
 
