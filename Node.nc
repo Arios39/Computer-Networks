@@ -235,6 +235,51 @@ table route[1];
                  
             break;
             
+            case Fin_Flag: //START OF TEAR DOWN
+            fd = getfd(payload);
+            temp = call SocketsTable.get(fd);
+            call SocketsTable.remove(fd);
+            //temp.state = CLOSED;
+            dbg(TRANSPORT_CHANNEL, "SERVER:I have recived a FIN_Flag from %d\n",myMsg->src);
+
+ 
+                temp = call Transport.accept(temp, payload);
+                temp.dest.addr=myMsg->src;
+                temp.effectiveWindow=payload.payload[5];
+                call SocketsTable.insert(fd, temp);
+                dbg(TRANSPORT_CHANNEL, "SERVER: Sening FIN_ACK to dest addr:%d dest port: %d\n",temp.dest.addr, temp.dest.port);
+                payload = makePayload( temp.dest.port,  temp.src.port,Fin_Ack_Flag,myMsg->seq+1,myMsg->seq,0);
+  				makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq+1,payload,TCP_PACKET_MAX_PAYLOAD_SIZE );
+  				 Packhash(&sendPackage,fd);
+   				forwarding(&sendPackage);  
+            
+            break;
+            
+            
+            case Fin_Ack_Flag:
+      			  fd = getfd(payload);
+                temp = call SocketsTable.get(fd); 
+                 call SocketsTable.remove(fd);
+                 temp.state = CLOSED;           
+                 call SocketsTable.insert(fd, temp);
+   				 dbg(TRANSPORT_CHANNEL, "CLIENT: Received FIN_ACK, Connection to Server Port Closing %d\n", temp.dest.port);
+              //   payload = makePayload( payload.payload[1],  payload.payload[0],Ack_Flag,myMsg->seq,myMsg->seq,0);
+  			//	makeTCPpacket(&sendPackage, TOS_NODE_ID,myMsg->src, 3, PROTOCOL_TCP,myMsg->seq,payload,TCP_PACKET_MAX_PAYLOAD_SIZE ); //not complete
+  				  			//	 Packhash(&sendPackage,fd);
+  				
+   				//forwarding(&sendPackage);  
+            break;
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             default:
             break;
             
@@ -664,6 +709,15 @@ event void TCPtimer.fired(){
   
   }
   break;
+ //PUT CASE FOR CLOSED HERE
+ 
+ case Fin_Flag:
+ dbg(TRANSPORT_CHANNEL,"Conection Closed send fin\n");
+ resendpack = getpack(i);
+  forwarding(&resendpack);
+ 
+ break;
+ 
  
  default:
  break; 
@@ -761,16 +815,16 @@ call SocketsTable.insert(i, temp);
    for(i;i<=temp.effectiveWindow;i++){
    
    temp = call SocketsTable.get(i);
-    temp.rcvdBuff[i-6] = payload.payload[i]; //copy payload into received buffer
+   // temp.rcvdBuff[i-6] = payload.payload[i]; //copy payload into received buffer
     
  
     
    if(temp.src.addr == src){
 	
 	dbg(TRANSPORT_CHANNEL,"Reading %u\n", payload.payload);
-	temp.lastRead; //define last read
+	//temp.lastRead; //define last read
 	 
-	 temp.nextExpected = temp.lastRead+1; //next expected to last read +1
+	 //temp.nextExpected = temp.lastRead+1; //next expected to last read +1
 	 
 	 
 	 
