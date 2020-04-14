@@ -39,8 +39,12 @@ s.runTime(10);
 
 s.testServer(2,4);
 s.runTime(100);
+s.testServer(2,5);
+s.runTime(100);
 #dest destport srcport transfer
 s.testClient(1, 2, 4, 5, 60);
+s.runTime(100);
+s.testClient(3, 2, 5, 5, 20);
 s.runTime(100);
 
 

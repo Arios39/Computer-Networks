@@ -80,7 +80,6 @@ float Q;
       socket_t getfd(TCPpack payload);
        uint16_t getfdmsg(uint16_t src);
      void ListHandler(pack *Package);
-void Sread(pack* myMsg, uint16_t src);
      void EstablishedSend();
      void replypackage(pack *Package);
       TCPpack dataPayload(uint16_t destport,uint16_t srcport,uint16_t flag,uint16_t ACK,uint16_t seq,uint16_t Awindow, TCPpack payload);
@@ -272,33 +271,33 @@ table route[1];
             if(myMsg->payload[2]==Data_Flag){
   
 
-   
+     dbg(TRANSPORT_CHANNEL,"Reading Data: ");
    
    for(i; i<temp.effectiveWindow;i++){
    
    
+   	  // dbg(TRANSPORT_CHANNEL,"------------------------next expected %d \n",  temp.nextExpected);
    
-   if( temp.nextExpected==temp.lastRead+1){
+   if( temp.nextExpected==myMsg->payload[i+6]){
 	  temp.rcvdBuff[i] = myMsg->payload[i+6]; //copy payload into received buffer
 	  	  	  	//dbg(TRANSPORT_CHANNEL,"bit %d\n",myMsg->payload[i+6]);
-	  
+	  printf("%d,",temp.rcvdBuff[i]);
 	 temp.lastRead = temp.rcvdBuff[i];
 	  temp.nextExpected = temp.rcvdBuff[i]+1;
+	  // dbg(TRANSPORT_CHANNEL,"next expected %d \n",  temp.nextExpected);
 	  }else{
-	  	  	dbg(TRANSPORT_CHANNEL,"getting wrong bit%d\n",myMsg->payload[i+6]);
+	  	  //	dbg(TRANSPORT_CHANNEL,"getting wrong bit%d\n",myMsg->payload[i+6]);
 	  	  	break;
 	  
 	  }
-	  
+	 
    
    }
    
-     dbg(TRANSPORT_CHANNEL,"Reading Data: ");
-	while(A<i){
-		printf("%d,",temp.rcvdBuff[A]);
-		A++;
-	 }
-	 		printf("\n" );
+     //dbg(TRANSPORT_CHANNEL,"Reading Data: ");
+  printf("\n" );
+	  
+	 		
    p.payload[0]=temp.dest.port;
      p.payload[1]=temp.src.port;
        p.payload[2]=Data_Ack_Flag;
@@ -310,20 +309,23 @@ table route[1];
         call SocketsTable.insert(fd, temp);
     makePack(&sendPackage, TOS_NODE_ID,myMsg->src , 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
 						forwarding(&sendPackage);
-   
+    // dbg(TRANSPORT_CHANNEL,"Next bit: %d",   temp.nextExpected);
 
              }       
           
             break;
             
-              case CLIENT:    
+              case CLIENT:   
+              if(myMsg->payload[2]==Data_Ack_Flag){
+                  fd = getfdmsg(myMsg->src);
             temp.lastAck = myMsg->payload[3];
             call SocketsTable.remove(fd);
         call SocketsTable.insert(fd, temp);
-                            		 dbg(TRANSPORT_CHANNEL, "---------- last bit rec %d\n ",   temp.lastAck);
+                            		 //dbg(TRANSPORT_CHANNEL, "---------- last bit rec %d\n ",   temp.lastAck);
+                            		       //  call TCPtimer.startOneShot(12000);
                             		 
-              EstablishedSend();
-            
+          EstablishedSend();
+            }
             break;
             default:
             
@@ -811,30 +813,31 @@ call SocketsTable.insert(i, temp);
 
   void EstablishedSend(){
      socket_store_t temp;
-      uint8_t destport, srcport, flag, ACK, seq, Awindow;
-     
+      uint16_t destport, srcport, flag, ACK, seq, Awindow;
   pack p;
 uint16_t size = call SocketsTable.size();
-   uint8_t i =1;
-      uint8_t j;
-         uint8_t k=1;
+   uint16_t i =1;
+      uint16_t j;
+         uint16_t k=0;
 
 				for(i; i<=size;i++){
  				temp = call SocketsTable.get(i);
 						if(temp.state==ESTABLISHED){
          				 k=0;
          				 j = temp.lastAck+1;
-   destport = temp.dest.port;
-   srcport = temp.src.port;
-   flag = Data_Flag;
-   ACK = 0;
-   seq = 0;
+  						 destport = temp.dest.port;
+  						 srcport = temp.src.port;
+  						 flag = Data_Flag;
+   							ACK = temp.lastAck;
+   							seq = temp.lastAck+1;
 						
-							for(k; k<=temp.effectiveWindow;k++ ){
+							for(k; k<=temp.effectiveWindow;k++){
 
 							                   
 							p.payload[k+6] = j+k;
-
+						if(p.payload[k+6]==temp.Transfer_Buffer){
+							flag = Fin_Flag;
+						}
 								}
 								  Awindow = (temp.Transfer_Buffer-p.payload[k+4]);
 								  p.payload[0] =  destport;
@@ -847,10 +850,14 @@ uint16_t size = call SocketsTable.size();
 								   }else{
 								  p.payload[5] =Awindow%16;
 								  }
-								  
+								  temp.effectiveWindow =  p.payload[5];
+								     call SocketsTable.remove(i);
+        call SocketsTable.insert(i, temp);
+								  if( p.payload[2]!=Fin_Flag){
+								
 				makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
 								   forwarding(&sendPackage);
-								
+								}
               
 						}
 
@@ -861,72 +868,7 @@ uint16_t size = call SocketsTable.size();
  }
    
   
-void Sread(pack* myMsg, uint16_t src){
-  // first look for src in list
-   socket_store_t temp;
-     pack p;
-   
-   uint16_t size = call SocketsTable.size();
-   uint8_t i =1;
-      uint8_t j =0;
-         uint8_t A =0;
- uint8_t destport, srcport, flag, ACK, seq, Awindow;
-   
-  
-   if(call SocketsTable.isEmpty()){
-	dbg(TRANSPORT_CHANNEL,"Socket list EMPTY\n");
-   }
-   for(i;i<=size;i++){
- 
-   
-   temp = call SocketsTable.get(i);
-    
-   if(temp.dest.addr == src){
- 								
-   
-   
-   for(j;j<temp.effectiveWindow;j++){
- 
-   if( temp.nextExpected==temp.lastRead+1){
-	  temp.rcvdBuff[j] = myMsg->payload[j+6]; //copy payload into received buffer
-	 temp.lastRead = temp.rcvdBuff[j];
-	  temp.nextExpected = temp.rcvdBuff[j]+1;
-	  }else{
-	  	  	dbg(TRANSPORT_CHANNEL,"getting wrong bit%d\n");
-	  	  	break;
-	  
-	  }
-	  }
-	  
-	  						temp.effectiveWindow = Awindow ;
-	  
-	  
-	dbg(TRANSPORT_CHANNEL,"Reading Data: ");
-	while(A<j){
-		printf("%d,",temp.rcvdBuff[A]);
-		A++;
-	 }
-	 		printf("\n" );
-	 		temp.lastRcvd = temp.rcvdBuff[A-1];	 		
-	 		temp.lastRead = temp.lastRcvd;
-	 		
-	 								  p.payload[0] =  temp.dest.port;
-								  p.payload[1] = temp.src.port;
-								   p.payload[2] = Data_Ack_Flag ;
-								  p.payload[3] =temp.lastRcvd;
-								   p.payload[4] = temp.lastRcvd+1;
-								p.payload[5]=temp.effectiveWindow ;
-									dbg(TRANSPORT_CHANNEL,"pack from %d ",myMsg->src );
-								
-	 makePack(&sendPackage, TOS_NODE_ID,myMsg->src , 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
-						forwarding(&sendPackage);
-	 
-   }
-   
-   }
-  
-  
-  }
+
 
 
 
