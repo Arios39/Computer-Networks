@@ -1000,7 +1000,32 @@ uint16_t size = call SocketsTable.size();
  
    
    }
-
+	 event void CommandHandler.ClientClose(uint16_t dest, uint16_t destPort, uint16_t srcPort, uint16_t transfer){
+	 socket_addr_t socket_address;
+      socket_addr_t socket_server;
+        socket_store_t tempsocket;
+   socket_t fd = call Transport.socket();
+   //dbg(TRANSPORT_CHANNEL,"port : %d\n", port);
+   socket_address.addr = TOS_NODE_ID;
+   socket_address.port = srcPort;
+   socket_server.addr = dest;
+   socket_server.port = destPort;
+   
+       dbg(TRANSPORT_CHANNEL, "Client: Sending Fin command: %d!\n", srcPort);
+       //get socket
+     tempsocket =  call Transport.getSocket(fd);
+            //dbg(TRANSPORT_CHANNEL, "src port..%d!\n",fd );
+      tempsocket.state = FIN_SENT;
+      tempsocket.TYPE= CLIENT;
+      tempsocket.lastAck=0;
+      tempsocket.Transfer_Buffer= transfer;
+      tempsocket.effectiveWindow=transfer%16;
+      call SocketsTable.insert(fd, tempsocket);
+          synPacket(dest,  destPort,  srcPort, fd, tempsocket.effectiveWindow);
+	 
+	 
+	 
+	 }
    event void CommandHandler.setAppServer(){}
 
    event void CommandHandler.setAppClient(){}
