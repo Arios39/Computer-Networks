@@ -429,6 +429,7 @@ table route[1];
             
            	break;
             }
+                           // call TCPtimer.startOneShot(12000);
             
             }
             }
@@ -1056,8 +1057,18 @@ uint16_t size = call SocketsTable.size();
    
    }
    
-    event void CommandHandler.ClientClose(uint16_t dest, uint16_t destPort, uint16_t srcPort, uint16_t transfer){
-	
+    event void CommandHandler.ClientClose(uint16_t dest, uint16_t destPort, uint16_t srcPort){
+	socket_addr_t socket_address;
+      socket_addr_t socket_server;
+        socket_store_t tempsocket;
+         socket_t fd;
+        tempsocket =  call Transport.getSocket(fd);
+        if(tempsocket.lastAck==tempsocket.Transfer_Buffer){
+               dbg(TRANSPORT_CHANNEL, "Client Closed %d!\n", srcPort);
+        
+        
+        
+        }
 	 
 	 
 	 }

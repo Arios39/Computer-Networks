@@ -9,10 +9,10 @@ s = TestSim();
 s.runTime(1);
    
     # Load the the layout of the network.
-s.loadTopo("example.topo");
+s.loadTopo("tuna-melt.topo");
 
     # Add a noise model to all of the motes.
-s.loadNoise("no_noise.txt");
+s.loadNoise("meyer-heavy.txt");
 
     # Turn on all of the sensors.
 s.bootAll();
@@ -38,15 +38,13 @@ s.runTime(10);
 
 
 s.testServer(2,4);
-s.runTime(100);
-s.testServer(2,5);
-s.runTime(100);
+s.runTime(10);
+
 #dest destport srcport transfer
 s.testClient(1, 2, 4, 5, 60);
-s.runTime(100);
-s.testClient(3, 2, 5, 5, 20);
-s.runTime(100);
+s.runTime(10);
 
-
+s.ClientClose(1, 2, 4, 5);
+s.runTime(10);
 
 
