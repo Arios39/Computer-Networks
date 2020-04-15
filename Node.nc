@@ -303,7 +303,7 @@ table route[1];
 	 		
    p.payload[0]=temp.dest.port;
      p.payload[1]=temp.src.port;
-       p.payload[2]=Data_Ack_Flag;
+       p.payload[2]=Fin_Ack_Flag;
          p.payload[3]= temp.lastRead;
     p.payload[4]=  temp.nextExpected;
    temp.effectiveWindow=myMsg->payload[5];
@@ -311,7 +311,7 @@ table route[1];
     call SocketsTable.remove(fd);
         call SocketsTable.insert(fd, temp);
     makePack(&sendPackage, TOS_NODE_ID,myMsg->src , 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
-						//forwarding(&sendPackage);
+						forwarding(&sendPackage);
                   
                   
                   
@@ -399,6 +399,31 @@ table route[1];
                             		 
           EstablishedSend();
             }
+            
+       if(myMsg->payload[2]==Fin_Ack_Flag){
+                  fd = getfdmsg(myMsg->src);
+            temp.lastAck = myMsg->payload[3];
+            call SocketsTable.remove(fd);
+        call SocketsTable.insert(fd, temp);
+                            		 //dbg(TRANSPORT_CHANNEL, "---------- last bit rec %d\n ",   temp.lastAck);
+                            		       //  call TCPtimer.startOneShot(12000);
+                if(temp.lastAck!=temp.Transfer_Buffer){            		 
+          EstablishedSend();
+            }
+            else{
+             dbg(TRANSPORT_CHANNEL, "ALL DATA RECIEVED\n");
+                          dbg(TRANSPORT_CHANNEL, "READY TO CLOSE \n");
+             
+            
+            }
+            }
+    
+    
+    
+    
+    
+    
+    
             break;
             default:
             
@@ -1025,11 +1050,17 @@ uint16_t size = call SocketsTable.size();
                 
      }
      
-    
+     
   
  
    
    }
+   
+    event void CommandHandler.ClientClose(uint16_t dest, uint16_t destPort, uint16_t srcPort, uint16_t transfer){
+	
+	 
+	 
+	 }
 
    event void CommandHandler.setAppServer(){}
 
