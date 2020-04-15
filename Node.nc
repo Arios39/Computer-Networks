@@ -194,7 +194,7 @@ table route[1];
             case SYN_Flag:
             fd = getfd(payload);
                 temp = call SocketsTable.get(fd); 
-                dbg(TRANSPORT_CHANNEL, "SERVER:I have recived a SYN_Flag from %d\n",myMsg->src);
+                dbg(TRANSPORT_CHANNEL, "SERVER:I have recived a SYN_Flag from %d for Port %d\n",myMsg->src, temp.src.port);
                 
                 call SocketsTable.remove(fd);
                 temp = call Transport.accept(temp, payload);
@@ -269,10 +269,10 @@ table route[1];
             
             case SERVER:  
              if(myMsg->payload[2]==Fin_Flag){
-                  dbg(TRANSPORT_CHANNEL,"FIN FLAG \n");
+                  dbg(TRANSPORT_CHANNEL,"FIN FLAG for Port (%d)\n",temp.src.port );
            
                   
-    dbg(TRANSPORT_CHANNEL,"Reading Data: ");
+    dbg(TRANSPORT_CHANNEL,"Reading last Data for Port (%d): ", temp.src.port);
     
    for(i; i<myMsg->payload[5]-6;i++){
    
@@ -344,7 +344,7 @@ table route[1];
             if(myMsg->payload[2]==Data_Flag){
   
 
-     dbg(TRANSPORT_CHANNEL,"Reading Data: ");
+    dbg(TRANSPORT_CHANNEL,"Reading Data for Port (%d): ", temp.src.port);
    
    for(i; i<=temp.effectiveWindow;i++){
    
@@ -412,7 +412,12 @@ table route[1];
             }
             else{
              dbg(TRANSPORT_CHANNEL, "ALL DATA RECIEVED\n");
-                          dbg(TRANSPORT_CHANNEL, "READY TO CLOSE \n");
+                      dbg(TRANSPORT_CHANNEL, "READY TO CLOSE \n");
+             temp.state = CLOSED;
+                                   dbg(TRANSPORT_CHANNEL, "CLIENT CLOSED \n");
+             
+             call SocketsTable.remove(fd);
+        call SocketsTable.insert(fd, temp);
              
             
             }
@@ -960,6 +965,8 @@ uint16_t size = call SocketsTable.size();
 								
 				makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
 								   forwarding(&sendPackage);
+								                   //call TCPtimer.startOneShot(12000);
+								   
 								}
 								
 								  if( p.payload[2]==Fin_Flag){
