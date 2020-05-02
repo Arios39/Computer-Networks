@@ -19,7 +19,6 @@
 //#define MAX_ROUTES 128;
 
 
-
 typedef struct{
 
 uint16_t node;
@@ -67,6 +66,8 @@ module Node{
 implementation{
    pack sendPackage;
    socket_t global_fd;
+   socket_store_t connections[MAX_NUM_OF_SOCKETS];
+   uint8_t Gpayload[20];
    // Project 1 implementations (functions)
 uint16_t seqNum=0;
 uint16_t PacketSent;
@@ -145,6 +146,8 @@ findneighbor();
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    Neighbor neighbor;
                    socket_store_t temp;
+                                      socket_store_t temp2;
+                   
                    socket_t fd;
    
 table route[1];  
@@ -197,7 +200,9 @@ table route[1];
                 dbg(TRANSPORT_CHANNEL, "SERVER:I have recived a SYN_Flag from %d for Port %d\n",myMsg->src, temp.src.port);
                 
                 call SocketsTable.remove(fd);
-                temp = call Transport.accept(temp, payload);
+
+    temp.state = SYN_RCVD;
+    temp.dest.port = payload.payload[1];
                 temp.dest.addr=myMsg->src;
                 temp.effectiveWindow=payload.payload[5];
                 call SocketsTable.insert(fd, temp);
@@ -230,9 +235,9 @@ table route[1];
                  call SocketsTable.remove(fd);
                  temp.state = ESTABLISHED;           
                  call SocketsTable.insert(fd, temp);
-   				 dbg(TRANSPORT_CHANNEL, "SERVER: Connection to Client Port Established %d\n ", temp.dest.port);
-   				 dbg(TRANSPORT_CHANNEL, "SERVER: window %d\n ", temp.effectiveWindow);
-   				 
+   				 dbg(TRANSPORT_CHANNEL, "SERVER: Connection to Client Port Established\n");
+					
+   				 //make a list of "ports"
                  
             break;
             
@@ -245,6 +250,101 @@ table route[1];
          
          }
       } 
+      
+       if(myMsg->protocol==PROTOCOL_Server){ 
+             //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                        
+              if( TOS_NODE_ID!=myMsg->dest){              
+           forwarding(myMsg);         
+         //Packhash(myMsg);
+         }
+         if(TOS_NODE_ID==myMsg->dest){
+             TCPpack payload;
+            
+             uint16_t i =0,j=0;
+              uint8_t A =0;
+              pack p,msg;
+              
+              fd = getfdmsg(myMsg->src);
+      memcpy(payload.payload, myMsg->payload, sizeof( myMsg->payload)*1);
+                temp = call SocketsTable.get(fd); 
+                if(temp.TYPE==SERVER){
+//-------------------------------------------------------------------------------------------------------------------cmd104                
+if (payload.payload[2] =104){
+
+//sending the message to all
+
+uint16_t size = call SocketsTable.size();
+
+for(i;i<=size;i++){
+temp2 = call SocketsTable.get(i);
+if(temp2.dest.addr!=temp.dest.addr){
+while(temp.user[A]!=32){
+						p.payload[A] = temp.user[A];
+						A++;
+						}
+
+
+ makePack(&sendPackage, TOS_NODE_ID, temp2.dest.addr, 3, PROTOCOL_Server, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								 forwarding(&sendPackage);
+					
+					A=0;
+					while(j<102){
+         
+          
+ 		msg.payload[j]=myMsg->payload[6+j];
+	
+	
+	
+	
+	if(myMsg->payload[6+j]==13){
+	j=102;
+	
+	}
+	j++;
+			}
+					
+							   
+								   
+		makePack(&sendPackage, TOS_NODE_ID, temp2.dest.addr, 3, PROTOCOL_Server, 104, msg.payload, PACKET_MAX_PAYLOAD_SIZE);
+								  forwarding(&sendPackage);						   
+								   
+								   
+}
+
+
+}
+
+
+
+
+}      
+}
+  //---------------------------------------------------------------------------------------------------------------------------------end of cmd 104
+  
+  //-----------------------------------------------------------------------------------------------------------------------------------cmd 109
+  
+  
+  
+ //-----------------------------------------------------------------------------------------------------------------------------------cmd end 109
+ if(temp.TYPE==CLIENT){
+ if(myMsg->seq==0){
+   dbg(TRANSPORT_CHANNEL,"Message From: %s \n", myMsg->payload);
+   }else{
+   
+   dbg(TRANSPORT_CHANNEL,"Message: %s \n", myMsg->payload);
+   
+   }
+      printf("\n");
+   
+   }
+
+
+      }
+      }
+      
+      
+      
          
          
             if(myMsg->protocol==PROTOCOL_TCPDATA){ 
@@ -272,30 +372,33 @@ table route[1];
                   dbg(TRANSPORT_CHANNEL,"FIN FLAG for Port (%d)\n",temp.src.port );
            
                   
-    dbg(TRANSPORT_CHANNEL,"Reading last Data for Port (%d): ", temp.src.port);
+   // dbg(TRANSPORT_CHANNEL,"Reading last Data for Port (%d): ", temp.src.port);
     
-   for(i; i<myMsg->payload[5]-6;i++){
+   for(i; i<myMsg->payload[5];i++){
    
    
    	  //
    	  
    	//   dbg(TRANSPORT_CHANNEL,"------------------------next expected %d \n",  temp.nextExpected);
    
-   if( temp.nextExpected==myMsg->payload[i+6]){
+if(myMsg->payload[3] !=104){
 	  temp.rcvdBuff[i] = myMsg->payload[i+6]; //copy payload into received buffer
-	  	  	  //	dbg(TRANSPORT_CHANNEL,"bit %d\n",myMsg->payload[i+6]);
-	  printf("%d,",temp.rcvdBuff[i]);
-	 temp.lastRead = temp.rcvdBuff[i];
-	  temp.nextExpected = temp.rcvdBuff[i]+1;
-	  // dbg(TRANSPORT_CHANNEL,"next expected %d \n",  temp.nextExpected);
 	  }else{
-	  	  	dbg(TRANSPORT_CHANNEL,"\ngetting wrong bit%d",myMsg->payload[i+6]);
-	  	  	break;
+	  
+	  temp.user[i]=myMsg->payload[i+6];
+	  	  	  	  	//dbg(TRANSPORT_CHANNEL,"user %c\n", temp.user[i]);
 	  
 	  }
+	  //printf("%c,",temp.rcvdBuff[i]);
+	 temp.lastRead = temp.rcvdBuff[i];
+	 temp.state=ESTABLISHED;
+	 // temp.nextExpected = temp.rcvdBuff[i]+1;
+	  // dbg(TRANSPORT_CHANNEL,"next expected %d \n",  temp.nextExpected);
+
 	 
    
    }
+          dbg(TRANSPORT_CHANNEL," ----------------------(%c): ....destport:.%d, fd:%d\n", temp.user[0], temp.dest.port,fd);
    
      //dbg(TRANSPORT_CHANNEL,"Reading Data: ");
   printf("\n" );
@@ -405,10 +508,10 @@ table route[1];
             temp.lastAck = myMsg->payload[3];
             call SocketsTable.remove(fd);
         call SocketsTable.insert(fd, temp);
-                            		 //dbg(TRANSPORT_CHANNEL, "---------- last bit rec %d\n ",   temp.lastAck);
+                            	//	 dbg(TRANSPORT_CHANNEL, "---------- last bit rec %d\n ",   temp.lastAck);
                             		       //  call TCPtimer.startOneShot(12000);
                 if(temp.lastAck!=temp.Transfer_Buffer){            		 
-          EstablishedSend();
+          //EstablishedSend();
             }
             else{
              dbg(TRANSPORT_CHANNEL, "ALL DATA RECIEVED\n");
@@ -469,17 +572,140 @@ table route[1];
       return msg;
    }
 
+void printusers(){
+
+ socket_store_t temp;
+      uint16_t destport, srcport, flag, ACK, seq, Awindow;
+  pack p;
+uint16_t size = call SocketsTable.size();
+   uint16_t i =1;
+      uint16_t j;
+         uint16_t k=0;
+    
+            dbg(TRANSPORT_CHANNEL, "listUsrRply ");
+
+				for(i; i<=size;i++){
+				j=0;
+ 				temp = call SocketsTable.get(i);
+						if(temp.state==ESTABLISHED){
+						
+						while(temp.user[j]!=32){
+						printf("%c",temp.user[j]);
+						j++;
+						}
+												printf(", ");
+						
+						}
+						}
+																		printf("\r\n");
+						
+						
+
+}
+//-----------------------------------------------------------------------------------------------------------------------------------------
+ 
+ void TCPCHAT_SEND(uint8_t *payload, uint8_t CMD,pack p){
+  socket_store_t temp;
+      uint16_t destport, srcport, flag, ACK, seq, Awindow,i=0, j=0,k=0;
+//fill in payload and send
+temp = call SocketsTable.get(1);
+
+Awindow = (temp.Transfer_Buffer-temp.lastAck)%16;
+
+
+for(i;i< Awindow;i++){
+if(CMD==109){
+p.payload[i+6]= payload[4+j];
+j++;
+}
+
+}
+
+	 makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_Server, CMD, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								   forwarding(&sendPackage);
+ 
+ 
+ 
+ 
+ }
+ 
+ 
+ 
+ 
+ void TCPchat(uint8_t *payload, uint8_t CMD){
+  socket_store_t temp;
+      uint16_t destport, srcport, flag, ACK, seq, Awindow,whitespace1=0, end=0,i=0;
+  pack p;
+temp = call SocketsTable.get(1);
+ p.payload[0] = 41;
+  p.payload[1] = temp.src.port;
+   p.payload[2] = CMD;
+    p.payload[3] = 0;
+     p.payload[4] = 1;
+ //-----------------------------------------------cmd 109
+
+
+while(end<1){
+           // dbg(TRANSPORT_CHANNEL, "%d---------------------\n", payload[i]);
+
+if(payload[i]==32 && whitespace1==0){
+whitespace1=i;
+
+
+}
+if(payload[i]==13){
+end=i;
+
+}
+i++;
+}
+
+        p.payload[5] = 0;
+temp.Transfer_Buffer = (end-whitespace1);
+call SocketsTable.remove(1);
+call SocketsTable.insert(1, temp);
+ TCPCHAT_SEND(payload, CMD, p);
+
+
+
+
+
+
+ 
+ //-----------------------------------------------
+ 
+ 
+ }
+
+
 
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
-   
-      dbg(GENERAL_CHANNEL, "PING EVENT destination %d\n", destination );
-     
-     // seqNum++;
-     makePack(&sendPackage, TOS_NODE_ID, destination, 10, PROTOCOL_PING,seqNum, payload, PACKET_MAX_PAYLOAD_SIZE);
-         forwarding(&sendPackage);
-    //  call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+   //-----------------------
+   if(payload[0]==104){
+      dbg(TRANSPORT_CHANNEL, "%s", payload );
+            dbg(TRANSPORT_CHANNEL, "establishing connection to server....\n" );
+         //  signal CommandHandler.setTestClient(1, 41, destination, 104);
+       
+       signal  CommandHandler.setAppClient(payload,  destination);
+      }
+      
+     //-------------------------------------------------------------------------
+     if(payload[0]==108){
+            dbg(TRANSPORT_CHANNEL, "%s________________ CMD: %d\n", payload ,payload[0]);
+      printusers();
+      }
+      
+      
+              if(payload[0]==109||payload[0]==119){
+               dbg(TRANSPORT_CHANNEL, "%s________________ CMD: %d\n", payload ,payload[0]);
+              
+TCPchat(payload, payload[0]);
+      }
+      
+      
+      
       
    }
 
@@ -777,8 +1003,21 @@ call Sender.send(sendPackage,route.NextHop);
    temp = call SocketsTable.get(i);
    
    if(temp.src.port == payload.payload[0]){
+   if(temp.TYPE == SERVER){
+
    
-return i;      
+    if(temp.src.port == payload.payload[0]&& temp.dest.port==0){
+       //  dbg(TRANSPORT_CHANNEL,"Connections   %d\n", i);
+    return i;
+    
+    
+    }
+   
+   
+   
+   }else{
+return i;
+      }
    }
    
    }
@@ -923,65 +1162,50 @@ uint16_t size = call SocketsTable.size();
    uint16_t i =1;
       uint16_t j;
          uint16_t k=0;
+         uint16_t st=0;
 
 				for(i; i<=size;i++){
  				temp = call SocketsTable.get(i);
 						if(temp.state==ESTABLISHED){
-         				 k=0;
-         				 j = temp.lastAck+1;
-  						 destport = temp.dest.port;
-  						 srcport = temp.src.port;
-  						 flag = Data_Flag;
-   							ACK = temp.lastAck;
-   							seq = temp.lastAck+1;
 						
-							for(k; k<temp.effectiveWindow;k++){
-
-							                   
-							p.payload[k+6] = j+k;
+						//----------------------------------------flag ===104
+         				                
+         				 if(temp.flag ==104){
+         				 j = temp.lastAck;
+         				for(k;k<temp.effectiveWindow;k++){
+         				p.payload[k+6]=Gpayload[k+j+6];
+         				         				// dbg(TRANSPORT_CHANNEL, "filling up payload with %c \n", p.payload[k+6]);
+         				
+         				if(k+j==temp.Transfer_Buffer-1){
+         				         				         				         				 //dbg(TRANSPORT_CHANNEL, "%d\n", k+j);
+         				
+         				st = k;
+         				break;
+         				}
+         				}
+         				
+         			p.payload[0] = temp.dest.port;
+         			p.payload[1] = temp.src.port;
+         			if(st==0){
+         			p.payload[2] =  Data_Flag;
+         			}else{
+         			p.payload[2] =  Fin_Flag;
+         			
+         			}
+         			p.payload[3] = temp.flag;
+         			p.payload[4] = 0;
+         			p.payload[5] = temp.effectiveWindow;
+         				 makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								   forwarding(&sendPackage);
+         				 
+         				 }
+						
 							
-						if(p.payload[k+6]==temp.Transfer_Buffer){
-										//	dbg(TRANSPORT_CHANNEL,"lFIIIIN FLAG%d\n",k+6);
-						
-						temp.lastSent=k+7;
-							flag = Fin_Flag;
-						}
-								}
-								  Awindow = (temp.Transfer_Buffer-p.payload[k+4]);
-								  p.payload[0] =  destport;
-								  p.payload[1] = srcport;
-								   p.payload[2] =flag;
-								  p.payload[3] =ACK;
-								   p.payload[4] =seq;
-								   if(Awindow%16==0){
-								 p.payload[5]=16;
-								   }else{
-								  p.payload[5] =Awindow%16;
-								  }
-								  temp.effectiveWindow =  p.payload[5];
-								     call SocketsTable.remove(i);
-        call SocketsTable.insert(i, temp);
-								  if( p.payload[2]!=Fin_Flag){
-								
-				makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
-								   forwarding(&sendPackage);
-								                   //call TCPtimer.startOneShot(12000);
-								   
-								}
-								
-								  if( p.payload[2]==Fin_Flag){
-					//dbg(TRANSPORT_CHANNEL,"lFIIIIN FLAG\n");
-								p.payload[5]=temp.lastSent;
-				makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_TCPDATA, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
-								   forwarding(&sendPackage);
-								}
-              
-						}
-
+//--------------------------------------------------------------------------------------
 
 
 				} 
-            
+       }     
  }
    
   
@@ -1008,25 +1232,28 @@ uint16_t size = call SocketsTable.size();
    event void CommandHandler.setTestServer(uint16_t port){
    socket_addr_t socket;
            socket_store_t tempsocket;
+   uint16_t size;
+       socket_t fd;
    
-   socket_t fd = call Transport.socket();
+  if(call SocketsTable.size()<= MAX_NUM_OF_SOCKETS){
+  
+  fd = call SocketsTable.size()+1;
+        dbg(TRANSPORT_CHANNEL, "%d---------------\n", fd);
+  
    socket.addr = TOS_NODE_ID;
    socket.port = port;
-        if(call Transport.bind(fd, &socket) == SUCCESS){
- dbg(TRANSPORT_CHANNEL,"Server Binding to port: %d success!\n", port);
-     }
-   if(call Transport.listen(fd) == SUCCESS) {
-      // dbg(TRANSPORT_CHANNEL, "Fire timer\n");
-        tempsocket =  call Transport.getSocket(fd);
+   tempsocket.src = socket;
         tempsocket.TYPE= SERVER;
                 tempsocket.nextExpected= 1;
                 tempsocket.lastRead=0;
-        
+        tempsocket.dest.port=0;
          tempsocket.lastRead = 0;
      call SocketsTable.insert(fd, tempsocket);
-                //call TCPtimer.startOneShot(6000);
-       
-     }
+
+      
+    }
+
+     
 
 //call timmer
    
@@ -1054,7 +1281,7 @@ uint16_t size = call SocketsTable.size();
       tempsocket.effectiveWindow=transfer%16;
       call SocketsTable.insert(fd, tempsocket);
           synPacket(dest,  destPort,  srcPort, fd, tempsocket.effectiveWindow);
-                call TCPtimer.startOneShot(12000);
+                //call TCPtimer.startOneShot(12000);
                 
      }
      
@@ -1071,7 +1298,7 @@ uint16_t size = call SocketsTable.size();
          socket_t fd;
         tempsocket =  call Transport.getSocket(fd);
         if(tempsocket.lastAck==tempsocket.Transfer_Buffer){
-               dbg(TRANSPORT_CHANNEL, "Client Closed %d!\n", srcPort);
+              dbg(TRANSPORT_CHANNEL, "Client Closed %d!\n", srcPort);
         
         
         
@@ -1080,9 +1307,83 @@ uint16_t size = call SocketsTable.size();
 	 
 	 }
 
-   event void CommandHandler.setAppServer(){}
+   event void CommandHandler.setAppServer(uint8_t *payload, uint16_t srcPort){
 
-   event void CommandHandler.setAppClient(){}
+
+
+   
+   }
+
+   event void CommandHandler.setAppClient(uint8_t *payload, uint16_t srcPort){
+   uint8_t cmd;
+   socket_addr_t socket_address;
+      socket_addr_t socket_server;
+        socket_store_t tempsocket;
+   socket_t fd = call Transport.socket();
+   uint8_t user[20]={0};
+uint8_t whitespaces=0,i=0,j=0,w=0;
+cmd = payload[0];
+
+
+   socket_address.addr = TOS_NODE_ID;
+   socket_address.port = srcPort;
+   socket_server.addr = 1;
+   socket_server.port = 41;
+    if(call Transport.bindClient(fd, &socket_address, &socket_server) == SUCCESS){
+       dbg(TRANSPORT_CHANNEL, "Client: Binding to port: %d!\n", srcPort);
+       //get socket
+     tempsocket =  call Transport.getSocket(fd);
+            //dbg(TRANSPORT_CHANNEL, "src port..%d!\n",fd );
+      tempsocket.state = SYN_SENT;
+      tempsocket.TYPE= CLIENT;
+      tempsocket.lastAck=0;
+      call SocketsTable.insert(fd, tempsocket);
+                }
+tempsocket = call SocketsTable.get(1);
+
+ call SocketsTable.remove(1);
+
+
+                    dbg(TRANSPORT_CHANNEL, "SEND COMMAND---------------- %d!\n", tempsocket.dest.port);
+                                        dbg(TRANSPORT_CHANNEL, "SEND COMMAND %c!\n", payload[12]);
+                    
+
+               dbg(TRANSPORT_CHANNEL, "SEND COMMAND %d!\n", cmd);
+                    if(cmd == 104){
+                  while(whitespaces<2){
+               
+               
+               // dbg(TRANSPORT_CHANNEL, "Payload[%d] =%c!\n", i,payload[i]);
+                  
+                  if(payload[i]==32){
+                  whitespaces++;
+                  if(whitespaces==1&&w==0){
+                  w=i;
+                  }
+                  }
+                                    i++;
+                  }
+                  i--;
+          dbg(TRANSPORT_CHANNEL, "First Whitespace found at: %d Second whitespace found at %d!\n", w,i);
+                  tempsocket.Transfer_Buffer = i-w;
+                  tempsocket.flag = 104;
+                        tempsocket.effectiveWindow=tempsocket.Transfer_Buffer%16;
+                  
+                       call SocketsTable.insert(1, tempsocket);
+                            synPacket(1,  41,  srcPort, 1, tempsocket.effectiveWindow);
+                                memcpy(Gpayload, payload, 20);
+                            
+                                  call TCPtimer.startOneShot(12000);
+                  
+                    }
+                                     
+                    
+                    }
+      
+   
+   
+   
+   
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
       Package->src = src;
