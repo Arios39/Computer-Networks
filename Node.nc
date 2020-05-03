@@ -251,6 +251,61 @@ table route[1];
          }
       } 
       
+            if(myMsg->protocol==PROTOCOL_whisper){ 
+             //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                        
+              if( TOS_NODE_ID!=myMsg->dest){              
+           forwarding(myMsg);         
+         //Packhash(myMsg);
+         }
+         if(TOS_NODE_ID==myMsg->dest){
+         TCPpack payload;
+            
+             uint16_t i =0,j=0;
+              uint8_t A =0;
+                 uint16_t size = call SocketsTable.size();
+              
+              pack p,msg;
+              
+              fd = getfdmsg(myMsg->src);
+      memcpy(payload.payload, myMsg->payload, sizeof( myMsg->payload)*1);
+                temp = call SocketsTable.get(fd); 
+     
+  // dbg(TRANSPORT_CHANNEL,"Message From: %s \n", myMsg->payload);
+   //====================================================================================================================================
+   
+   for(i;i<=size;i++){
+temp2 = call SocketsTable.get(i);
+if(temp2.dest.addr==myMsg->src){
+while(temp.user[A]!=32){
+						p.payload[A] = temp.user[A];
+						A++;
+						}
+
+
+ makePack(&sendPackage, TOS_NODE_ID, myMsg->seq, 3, PROTOCOL_Server, 0, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								 forwarding(&sendPackage);
+								  makePack(&sendPackage, TOS_NODE_ID, myMsg->seq, 3, PROTOCOL_Server, 7, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE);
+								 forwarding(&sendPackage);
+					}
+					}
+   
+   
+   
+   
+   //====================================================================================================================================
+
+
+
+}
+      
+      
+  }    
+      
+      
+      
+      
+      
        if(myMsg->protocol==PROTOCOL_Server){ 
              //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
                         
@@ -269,7 +324,7 @@ table route[1];
       memcpy(payload.payload, myMsg->payload, sizeof( myMsg->payload)*1);
                 temp = call SocketsTable.get(fd); 
                 if(temp.TYPE==SERVER){
-//-------------------------------------------------------------------------------------------------------------------cmd104                
+//-------------------------------------------------------------------------------------------------------------------cmd104 actural 109               
 if (payload.payload[2] =104){
 
 //sending the message to all
@@ -318,7 +373,12 @@ while(temp.user[A]!=32){
 
 
 
-}      
+} 
+
+
+
+
+     
 }
   //---------------------------------------------------------------------------------------------------------------------------------end of cmd 104
   
@@ -620,10 +680,24 @@ j++;
 }
 
 }
-
+if(CMD==109){
 	 makePack(&sendPackage, TOS_NODE_ID, temp.dest.addr, 3, PROTOCOL_Server, CMD, p.payload, PACKET_MAX_PAYLOAD_SIZE);
 								   forwarding(&sendPackage);
+ }
  
+ if(CMD==119){
+ for(i;i< Awindow;i++){
+if(CMD==109){
+p.payload[i+6]= payload[4+j];
+j++;
+}
+
+}
+ 
+ 
+	// makePack(&sendPackage, TOS_NODE_ID, 1, 3, PROTOCOL_Server, CMD, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								   //forwarding(&sendPackage);
+ }
  
  
  
@@ -632,9 +706,9 @@ j++;
  
  
  
- void TCPchat(uint8_t *payload, uint8_t CMD){
+ void TCPchat(uint8_t *payload, uint8_t CMD, uint8_t destination){
   socket_store_t temp;
-      uint16_t destport, srcport, flag, ACK, seq, Awindow,whitespace1=0, end=0,i=0;
+      uint16_t destport, srcport, flag, ACK, seq, Awindow,whitespace1=0, end=0,i=0,j=0;
   pack p;
 temp = call SocketsTable.get(1);
  p.payload[0] = 41;
@@ -643,7 +717,7 @@ temp = call SocketsTable.get(1);
     p.payload[3] = 0;
      p.payload[4] = 1;
  //-----------------------------------------------cmd 109
-
+if(CMD==109){
 
 while(end<1){
            // dbg(TRANSPORT_CHANNEL, "%d---------------------\n", payload[i]);
@@ -666,15 +740,56 @@ call SocketsTable.remove(1);
 call SocketsTable.insert(1, temp);
  TCPCHAT_SEND(payload, CMD, p);
 
-
+}
 
 
 
 
  
- //-----------------------------------------------
+ //-----------------------------------------------119
  
  
+ if(CMD==119){
+ 
+ while(end<1){
+            //dbg(TRANSPORT_CHANNEL, "%d---------------------\n", payload[i]);
+
+if(payload[i]==32 && whitespace1==0){
+whitespace1=i;
+            dbg(TRANSPORT_CHANNEL, "%d-whitespace 2\n", i);
+
+}
+if(payload[i]==32 && whitespace1!=0){
+whitespace1=i;
+          //  dbg(TRANSPORT_CHANNEL, "%d-whitespace 2\n", i);
+
+
+}
+if(whitespace1!=0){
+
+p.payload[j] = payload[i];
+
+}
+if(payload[i]==13){
+end=i;
+
+}
+i++;
+}
+ 
+         
+temp.Transfer_Buffer = (end-whitespace1);
+dbg(TRANSPORT_CHANNEL, "%d\n", temp.Transfer_Buffer);
+call SocketsTable.remove(1);
+call SocketsTable.insert(1, temp);
+
+  makePack(&sendPackage, TOS_NODE_ID, 1, 3, PROTOCOL_Server, destination, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								   forwarding(&sendPackage);
+ 
+ 
+ }
+ 
+ //----------------------------------------------
  }
 
 
@@ -682,6 +797,9 @@ call SocketsTable.insert(1, temp);
 
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
+  socket_store_t temp;
+  pack p;
+      uint16_t destport, srcport, flag, ACK, seq, Awindow,whitespace1=0, end=0,i=0,j=0;
    //-----------------------
    if(payload[0]==104){
       dbg(TRANSPORT_CHANNEL, "%s", payload );
@@ -693,17 +811,54 @@ call SocketsTable.insert(1, temp);
       
      //-------------------------------------------------------------------------
      if(payload[0]==108){
-            dbg(TRANSPORT_CHANNEL, "%s________________ CMD: %d\n", payload ,payload[0]);
+         //   dbg(TRANSPORT_CHANNEL, "%s________________ CMD: %d\n", payload ,payload[0]);
       printusers();
       }
       
       
-              if(payload[0]==109||payload[0]==119){
-               dbg(TRANSPORT_CHANNEL, "%s________________ CMD: %d\n", payload ,payload[0]);
+              if(payload[0]==109){
+              // dbg(TRANSPORT_CHANNEL, "%s________________ CMD: %d\n", payload ,payload[0]);
               
-TCPchat(payload, payload[0]);
+TCPchat(payload, payload[0], destination);
       }
       
+      
+      if(payload[0]==119){      
+       while(end<1){
+            //dbg(TRANSPORT_CHANNEL, "%c---------------------%d\n", p.payload[j],j);
+
+if(payload[i]==32){
+whitespace1++;
+
+}
+if(payload[i]==13){
+end=i;
+
+}
+if(whitespace1>=2&&end<1){
+
+p.payload[j] = payload[i];
+j++;
+           // dbg(TRANSPORT_CHANNEL, "%c\n", p.payload[j]);
+
+}
+
+i++;
+}
+ 
+         
+temp.Transfer_Buffer = (end-whitespace1);
+dbg(TRANSPORT_CHANNEL, "%s\n", payload);
+
+
+  makePack(&sendPackage, TOS_NODE_ID, 1, 3, PROTOCOL_whisper, destination, p.payload, PACKET_MAX_PAYLOAD_SIZE);
+								   forwarding(&sendPackage);
+      
+      
+      
+      
+      
+      }
       
       
       
