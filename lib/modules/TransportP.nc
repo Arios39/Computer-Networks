@@ -16,12 +16,11 @@ module TransportP
  
 }
 implementation{
-
+    socket_t fdw;
 command socket_store_t Transport.getSocket(socket_t fd){
    socket_store_t temp;
 
    temp = call SocketsTable.get(fd);
-
 
 return temp;
 }
@@ -29,10 +28,13 @@ return temp;
 command socket_t Transport.socket(){
     socket_t fd;
    socket_store_t socket;
+              socket_store_t tempsocket;
+   
     uint16_t size;
 if(call SocketsTable.size()<= MAX_NUM_OF_SOCKETS){
 
-fd = call SocketsTable.size()+1;
+fd = fdw+1;
+    dbg(TRANSPORT_CHANNEL,"fd value%d\n", fd);
 
 
 socket.fd=fd;

@@ -44,6 +44,7 @@ typedef struct socket_store_t{
     socket_addr_t dest;
     socket_t fd;
     enum My_port TYPE;
+    nx_uint8_t user[SOCKET_BUFFER_SIZE];
     // This is the sender portion.
     uint8_t sendBuff[SOCKET_BUFFER_SIZE];
     uint8_t lastWritten;

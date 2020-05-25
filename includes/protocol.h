@@ -14,6 +14,8 @@ enum{
 	PROTOCOL_TCP= 4,
 	PROTOCOL_DV = 5,
 	PROTOCOL_TCPDATA= 6,
+	PROTOCOL_Server = 7,
+PROTOCOL_whisper=9,
    PROTOCOL_CMD = 99
 };
 

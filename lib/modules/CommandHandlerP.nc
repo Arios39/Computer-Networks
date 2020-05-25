@@ -81,6 +81,15 @@ implementation{
                 dbg(COMMAND_CHANNEL, "Command Type: CLOSE\n");
                 signal CommandHandler.ClientClose(buff[0], buff[1], buff[2]);
                 break;
+                
+                 case CMD_CHATS:
+                dbg(COMMAND_CHANNEL, "Command Type: Server Chat\n");
+                signal CommandHandler.setAppServer(&buff[0], buff[1]);
+                break;
+                 case CMD_CHATC:
+                dbg(COMMAND_CHANNEL, "Command Type: Client Chat\n");
+                signal CommandHandler.setAppClient(&buff[0], buff[1]);
+                break;
 
             default:
                 dbg(COMMAND_CHANNEL, "CMD_ERROR: \"%d\" does not match any known commands.\n", msg->id);

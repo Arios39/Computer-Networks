@@ -16,6 +16,7 @@ class TestSim:
     CMD_TEST_CLIENT = 4
     CMD_TEST_SERVER = 5
     CMD_CLOSE = 6
+    CMD_CHATS = 7
     # CHANNELS - see includes/channels.h
     COMMAND_CHANNEL="command";
     GENERAL_CHANNEL="general";
@@ -134,7 +135,10 @@ class TestSim:
             self.sendCMD(self.CMD_TEST_CLIENT, source, "{0}{1}{2}{3}".format(chr(dest),chr(destPort),chr(srcPort),chr(transfer)));
 
     def ClientClose(self, source, dest,  destPort,srcPort):
-            self.sendCMD(self.CMD_CLOSE, source, "{0}{1}{2}".format(chr(dest), chr(destPort), chr(srcPort)));
+        self.sendCMD(self.CMD_CLOSE, source, "{0}{1}{2}".format(chr(dest), chr(destPort), chr(srcPort)));
+
+    def setAppServer(self, source, msg, srcPort ):
+        self.sendCMD(self.CMD_CHATS, source, "{0}{1}".format(msg,chr(srcPort)));
 
     def addChannel(self, channelName, out=sys.stdout):
         print 'Adding Channel', channelName;

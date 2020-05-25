@@ -35,16 +35,32 @@ s.runTime(10);
 #s.ping(1, 5, "hi");
 #s.runTime(50);
 
-
-
-s.testServer(2,4);
+s.testServer(1,41);
 s.runTime(10);
 
-#dest destport srcport transfer
-s.testClient(1, 2, 4, 5, 60);
+s.testServer(1,41);
 s.runTime(10);
 
-s.ClientClose(1, 2, 4, 5);
+s.testServer(1,41);
 s.runTime(10);
+
+s.ping(2, 7, "hello arios39 \r\n");
+s.runTime(10);
+
+s.ping(5, 9, "hello cortiz42 \r\n");
+s.runTime(10);
+
+s.ping(3, 9, "hello dguinn \r\n");
+s.runTime(10);
+
+s.ping(1, 41, "listuser\r\n");
+s.runTime(10);
+
+s.ping(2, 7, "msg Hello World!\r\n");
+s.runTime(10);
+
+s.ping(3, 2, "whisper arios39 Hey \r\n");
+s.runTime(10);
+
 
 
